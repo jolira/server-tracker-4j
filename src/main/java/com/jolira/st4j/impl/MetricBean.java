@@ -21,10 +21,10 @@ import net.sf.cglib.proxy.MethodProxy;
 abstract class MetricBean<T> {
     final T metric;
 
-    MetricBean(final Class<T> superclass) {
+    MetricBean(final Class<T> type) {
         final Enhancer e = new Enhancer();
 
-        e.setSuperclass(superclass);
+        e.setSuperclass(type);
         e.setCallback(new MethodInterceptor() {
             @Override
             public Object intercept(final Object obj, final Method method, final Object[] args, final MethodProxy proxy)
@@ -33,10 +33,9 @@ abstract class MetricBean<T> {
             }
         });
 
-        @SuppressWarnings("unchecked")
-        final T _metric = (T) e.create();
+        final Object _metric = e.create();
 
-        metric = _metric;
+        metric = type.cast(_metric);
     }
 
     protected abstract void add(String name, Object value);
