@@ -1,0 +1,21 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.jolira</groupId>
+    <artifactId>superpom</artifactId>
+    <version>1.1.4</version>
+  </parent>
+  <artifactId>server-tracker-4j</artifactId>
+  <packaging>jar</packaging>
+  <name>Server Tracker for Java</name>
+  <version>0.0.1-SNAPSHOT</version>
+  <description>A client library for the Server Tracker. (http://github.com/jolira/server-tracker)</description>
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.8.2</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>
