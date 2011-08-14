@@ -30,6 +30,7 @@ import com.jolira.st4j.Metric;
 import com.jolira.st4j.ServerTracker;
 
 /**
+ * Creates metric and stores them in the thread-local field and send metric to the remote server.
  * 
  * @author jfk
  * @date Aug 12, 2011 9:09:31 PM
