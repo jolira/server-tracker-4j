@@ -11,7 +11,7 @@ This library has been build to be used with Google's Guice, but can also be run
 without code injection. The instructions below show how to use the abstraction
 standalone and with Guice.
 
-Stand-Along Usage
+Stand-Alone Usage
 -----------------
 
 Here is a very simple example for how to use this library (without Guice):
