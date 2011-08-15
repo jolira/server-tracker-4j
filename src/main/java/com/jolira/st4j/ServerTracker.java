@@ -15,30 +15,36 @@ package com.jolira.st4j;
  */
 public interface ServerTracker {
     /**
-     * Create or retrieve a metric object. If an instance of this metric was already created for this thread this
-     * instance is returned. Otherwise a new instance is returned.
+     * Post a log record.
      * 
-     * @param type
-     *            the type of metric to be returned
-     * @return the generated metric
+     * @param record
+     *            the record to post
      */
-    public <T> T getMetric(final Class<T> type);
+    public void post(LogRecord record);
 
     /**
-     * Create or retrieve a metric object. If an instance of this metric was already created for this thread this
-     * instance is returned. Otherwise a new instance is returned.
+     * Adds a metric object to thread-local storage to it can be dispatch to the server in a subsequent
+     * {@link #submit()} call. The name of the metric will be derived from the name of the class or a {@link Metric}
+     * annotation if one if present on the type.
+     * 
+     * @param metric
+     *            the type of metric to be returned
+     */
+    public void postMetric(final Object metric);
+
+    /**
+     * Adds a metric object to thread-local storage to it can be dispatch to the server in a subsequent
+     * {@link #submit()} call.
      * 
      * @param name
      *            the name to be used to store the metric
-     * 
-     * @param type
+     * @param metric
      *            the type of metric to be returned
-     * @return the generated metric
      */
-    public <T> T getMetric(String name, final Class<T> type);
+    public void postMetric(String name, final Object metric);
 
     /**
-     * submit all metrics collectd for this thread to the remote server tracker.
+     * Submits all metrics and logs collected for this thread to the remote server tracker.
      */
     public void submit();
 }

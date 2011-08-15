@@ -1,5 +1,6 @@
 package com.jolira.st4j.impl;
 
+import static com.jolira.st4j.impl.ServerTrackerImpl.getLocalMetric;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
@@ -7,8 +8,9 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.util.Map;
 import java.util.concurrent.Executor;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
 
 import javax.servlet.ServletException;
 import javax.servlet.ServletInputStream;
@@ -21,57 +23,52 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jolira.st4j.Metric;
+import com.jolira.st4j.jdk14.JDK14LogRecordAdapter;
 import com.jolira.testing.WebServerEmulator;
 
 @SuppressWarnings("javadoc")
 public class ServerTrackerImplTest {
     final static Logger LOG = LoggerFactory.getLogger(ServerTrackerImplTest.class);
 
-    interface MyMetric {
-        void setValueA(final long a);
-        void setValueB(final String b);
+    static class MyMetric {
+        long valueA;
+        String valueB;
     }
 
     @Metric
-    interface MySecondMetric {
-        void setValueC(final long a);
+    static class MySecondMetric {
+        long valueC;
     }
 
-    @Metric("thrid")
+    @Metric("third")
     static class MyThirdMetric {
-        void setValueD(final String b){}
+        String valueD;
     }
 
 
     @Test
     public void testGetMetric() {
         final ServerTrackerImpl tracker = new ServerTrackerImpl("localhost:3080", null);
-        final MyMetric m1 = tracker.getMetric(MyMetric.class);
-        final MyMetric m1_2 = tracker.getMetric(MyMetric.class);
-        final MySecondMetric m2 = tracker.getMetric(MySecondMetric.class);
-        final MyThirdMetric m3 = tracker.getMetric(MyThirdMetric.class);
+        final MyMetric m1 = new MyMetric();
+        final MySecondMetric m2 = new MySecondMetric();
+        final MyThirdMetric m3 = new MyThirdMetric();
 
-        m1.setValueA(1234567890l);
-        m1.setValueB("test");
-        m2.setValueC(0);
-        m3.setValueD("jolira");
+        m1.valueA=1234567890l;
+        m1.valueB="test";
+        m2.valueC=0;
+        m3.valueD="jolira";
 
-        final Map<String, Map<String, Object>> collected = tracker.getLocal();
-        final int size = collected.size();
-        final Map<String, Object> r1 = collected.get("com.jolira.st4j.impl.servertrackerimpltest$mymetric");
-        final Map<String, Object> r2 = collected.get("com.jolira.st4j.impl.servertrackerimpltest$mysecondmetric");
-        final Map<String, Object> r3 = collected.get("thrid");
-        final Object v1 = r1.get("valueA");
-        final Object v2 = r1.get("valueB");
-        final Object v3 = r2.get("valueC");
-        final Object v4 = r3.get("valueD");
+        tracker.postMetric(m1);
+        tracker.postMetric(m2);
+        tracker.postMetric(m3);
 
-        assertSame(m1, m1_2);
-        assertEquals(3, size);
-        assertEquals(Long.valueOf(1234567890l), v1);
-        assertEquals("test", v2);
-        assertEquals(Long.valueOf(0), v3);
-        assertEquals("jolira", v4);
+        final MyMetric r1 = getLocalMetric(null, MyMetric.class);
+        final MySecondMetric r2 = getLocalMetric("com.jolira.st4j.impl.servertrackerimpltest$mysecondmetric", MySecondMetric.class);
+        final MyThirdMetric r3 = getLocalMetric("third", MyThirdMetric.class);
+
+        assertSame(m1, r1);
+        assertSame(m2, r2);
+        assertSame(m3, r3);
     }
 
     @Test
@@ -98,8 +95,8 @@ public class ServerTrackerImplTest {
                     fail("body does not contain com.jolira.st4j.impl.servertrackerimpltest$mymetric: " + body);
                 }
 
-                if (!body.contains("\"thrid\":{\"valueD\":\"jolira\"}")) {
-                    fail("body does not contain thrid: " + body);
+                if (!body.contains("\"third\":{\"valueD\":\"jolira\"}")) {
+                    fail("body does not contain third: " + body);
                 }
 
                 response.setContentType(contentType);
@@ -122,16 +119,19 @@ public class ServerTrackerImplTest {
                 public void execute(final Runnable command) {
                     command.run();
                 }});
-            final MyMetric m1 = tracker.getMetric(MyMetric.class);
-            tracker.getMetric(MyMetric.class);
-            final MySecondMetric m2 = tracker.getMetric(MySecondMetric.class);
-            final MyThirdMetric m3 = tracker.getMetric(MyThirdMetric.class);
+            final MyMetric m1 = new MyMetric();
+            final MySecondMetric m2 = new MySecondMetric();
+            final MyThirdMetric m3 = new MyThirdMetric();
 
-            m1.setValueA(1234567890l);
-            m1.setValueB("test");
-            m2.setValueC(0);
-            m3.setValueD("jolira");
+            m1.valueA=1234567890l;
+            m1.valueB="test";
+            m2.valueC=0;
+            m3.valueD="jolira";
 
+            tracker.postMetric(m1);
+            tracker.postMetric(m2);
+            tracker.postMetric(m3);
+            tracker.post(new JDK14LogRecordAdapter(new LogRecord(Level.SEVERE, "")));
             tracker.submit();
             tracker.submit();
         }

@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
+import com.jolira.st4j.LogRecord;
 import com.jolira.st4j.Metric;
 import com.jolira.st4j.ServerTracker;
 
@@ -39,7 +40,22 @@ import com.jolira.st4j.ServerTracker;
  */
 @Singleton
 public class ServerTrackerImpl implements ServerTracker {
+    private static final String DEFAULT = "##default";
+
     final static Logger LOG = LoggerFactory.getLogger(ServerTrackerImpl.class);
+
+    private final static String hostname;
+
+    static {
+        try {
+            final java.net.InetAddress host = java.net.InetAddress.getLocalHost();
+
+            hostname = host.getHostName();
+        } catch (final java.net.UnknownHostException ex) {
+            throw new Error("unable to determine the hostname", ex);
+        }
+    }
+
     private final static ThreadLocal<Map<String, Object>> localMetrics = new ThreadLocal<Map<String, Object>>() {
         @Override
         protected Map<String, Object> initialValue() {
@@ -47,80 +63,45 @@ public class ServerTrackerImpl implements ServerTracker {
         }
     };
 
-    private final static ThreadLocal<Map<String, Map<String, Object>>> local = new ThreadLocal<Map<String, Map<String, Object>>>() {
-        @Override
-        protected Map<String, Map<String, Object>> initialValue() {
-            return new HashMap<String, Map<String, Object>>();
-        }
-    };
+    final static <T> T getLocalMetric(final String mname, final Class<T> type) {
+        final String metricName = getMetricName(mname, type);
+        final Map<String, Object> metricByName = localMetrics.get();
+        final Object obj = metricByName.get(metricName);
 
-    static final void add(final String metric, final String key, final Object value) {
-        final Map<String, Map<String, Object>> map = local.get();
-        Map<String, Object> valByKey = map.get(metric);
-
-        if (valByKey == null) {
-            valByKey = new HashMap<String, Object>();
-
-            map.put(metric, valByKey);
-        }
-
-        valByKey.put(key, value);
+        return type.cast(obj);
     }
 
-    private static String getDefaultMetricName(final Class<?> type) {
+    private static String getMetricName(final String mname, final Class<? extends Object> type) {
+        if (mname != null && !DEFAULT.equals(mname)) {
+            return mname;
+        }
+
+        final Metric metric = type.getAnnotation(Metric.class);
+
+        if (metric != null) {
+            final String value = metric.value();
+
+            if (value != null && !DEFAULT.equals(value)) {
+                return value;
+            }
+        }
+
         final String name = type.getName();
 
         return name.toLowerCase();
     }
 
-    private final static <T> T getLocalMetric(final Class<T> type) {
-        final String metricName = getMetricName(type);
+    static void postLocalMetric(final String mname, final Object metric) {
+        final Class<? extends Object> type = metric.getClass();
+        final String metricName = getMetricName(mname, type);
+        final Map<String, Object> metricByName = localMetrics.get();
 
-        return getLocalMetric(metricName, type);
+        metricByName.put(metricName, metric);
     }
 
-    /**
-     * @param metricName
-     * @param type
-     * @return
-     */
-    private static <T> T getLocalMetric(final String metricName, final Class<T> type) {
-        final Map<String, Object> _metricByName = localMetrics.get();
-        final Object o = _metricByName.get(metricName);
+    private final Collection<Map<String, Object>> cycles = new LinkedList<Map<String, Object>>();
 
-        if (o != null) {
-            return type.cast(o);
-        }
-
-        final MetricBean<T> bean = new MetricBean<T>(type) {
-            @Override
-            protected void add(final String name, final Object value) {
-                ServerTrackerImpl.add(metricName, name, value);
-            }
-        };
-
-        _metricByName.put(metricName, bean.metric);
-
-        return bean.metric;
-    }
-
-    private static String getMetricName(final Class<?> type) {
-        final Metric anno = type.getAnnotation(Metric.class);
-
-        if (anno == null) {
-            return getDefaultMetricName(type);
-        }
-
-        final String value = anno.value();
-
-        if ("##default".equals(value)) {
-            return getDefaultMetricName(type);
-        }
-
-        return value;
-    }
-
-    private final Collection<Map<String, Map<String, Object>>> pending = new LinkedList<Map<String, Map<String, Object>>>();
+    private final Collection<LogRecord> logs = new LinkedList<LogRecord>();
 
     private final Executor executor;
 
@@ -140,7 +121,7 @@ public class ServerTrackerImpl implements ServerTracker {
     }
 
     private boolean dispatch(final Gson gson) throws IOException {
-        final Collection<Map<String, Map<String, Object>>> _pending = retrievePending();
+        final Map<String, Object> _pending = retrievePending();
 
         if (_pending == null) {
             return false;
@@ -164,34 +145,20 @@ public class ServerTrackerImpl implements ServerTracker {
         final int status = conn.getResponseCode();
 
         if (status != 200) {
-            LOG.error("{} response code while submitting {}", Integer.valueOf(status), gson.toJson(_pending));
+            throw new Error(Integer.toString(status) + " response code while submitting " + gson.toJson(_pending));
         }
 
         return true;
     }
 
-    /**
-     * Returns the collected values for unit testing.
-     * 
-     * @return the values
-     */
-    final Map<String, Map<String, Object>> getLocal() {
-        return local.get();
-    }
-
     @Override
-    public <T> T getMetric(final Class<T> type) {
-        return getLocalMetric(type);
+    public void post(final LogRecord record) {
+        logs.add(record);
     }
 
-    @Override
-    public <T> T getMetric(final String name, final Class<T> type) {
-        return getLocalMetric(name, type);
-    }
-
-    void post(final Map<String, Map<String, Object>> _collected) {
-        synchronized (pending) {
-            pending.add(_collected);
+    void post(final Map<String, Object> cycle) {
+        synchronized (cycles) {
+            cycles.add(cycle);
 
             if (dispatcherRunning) {
                 return;
@@ -209,37 +176,90 @@ public class ServerTrackerImpl implements ServerTracker {
         } catch (final IOException e) {
             LOG.error("exception while dispatching", e);
         } finally {
-            synchronized (pending) {
+            synchronized (cycles) {
                 dispatcherRunning = false;
             }
         }
     }
 
-    private Collection<Map<String, Map<String, Object>>> retrievePending() {
-        synchronized (pending) {
-            final int size = pending.size();
+    @Override
+    public void postMetric(final Object metric) {
+        postLocalMetric(null, metric);
+    }
+
+    @Override
+    public void postMetric(final String name, final Object metric) {
+        postLocalMetric(name, metric);
+    }
+
+    private Map<String, Object> retrievePending() {
+        final Collection<Map<String, Object>> _cycles= retrieveCollectedCycles();
+        final Collection<LogRecord> _logs = retrieveCollectedLogs();
+
+        if (_cycles == null && _logs == null) {
+            return null;
+        }
+
+        final Map<String, Object> pending = new HashMap<String, Object>();
+
+        if (_cycles != null) {
+            pending.put("cycles", _cycles);
+        }
+
+        if (_logs != null) {
+            pending.put("logs", _logs);
+        }
+
+        final long now = System.currentTimeMillis();
+
+        pending.put("hostname", hostname);
+        pending.put("timestamp", Long.valueOf(now));
+
+        return pending;
+    }
+
+    private Collection<Map<String, Object>> retrieveCollectedCycles() {
+        synchronized (cycles) {
+            final int size = cycles.size();
 
             if (size < 1) {
                 return null;
             }
 
-            final Collection<Map<String, Map<String, Object>>> _pending = new ArrayList<Map<String, Map<String, Object>>>(
-                    size);
+            final Collection<Map<String, Object>> pending = new ArrayList<Map<String, Object>>(size);
 
-            _pending.addAll(pending);
-            pending.clear();
+            pending.addAll(cycles);
+            cycles.clear();
 
-            return _pending;
+            return pending;
+        }
+    }
+
+    private Collection<LogRecord> retrieveCollectedLogs() {
+        synchronized (logs) {
+            final int size = logs.size();
+
+            if (size < 1) {
+                return null;
+            }
+
+            final Collection<LogRecord>  pending = new ArrayList<LogRecord>(size);
+
+            pending.addAll(logs);
+            logs.clear();
+
+            return pending;
         }
     }
 
     @Override
     public void submit() {
-        final Map<String, Map<String, Object>> _collected = getLocal();
+        final Map<String, Object> _cycle = localMetrics.get();
+        final Map<String, Object> cycle = new HashMap<String, Object>(_cycle);
 
-        local.remove();
+        localMetrics.remove();
 
-        final int size = _collected.size();
+        final int size = cycle.size();
 
         if (size < 1) {
             return;
@@ -249,7 +269,7 @@ public class ServerTrackerImpl implements ServerTracker {
             @Override
             public void run() {
                 try {
-                    post(_collected);
+                    post(cycle);
                 } catch (final Throwable e) {
                     LOG.error("error while submitting data", e);
                 }

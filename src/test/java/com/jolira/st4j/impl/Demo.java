@@ -10,7 +10,7 @@ public class Demo {
     public static void main(final String[] args) {
         final Executor executor = Executors.newCachedThreadPool();
         final ServerTracker tracker = new ServerTrackerImpl("tracker.jolira.com:3080", executor);
-        final DemoMetric metric = tracker.getMetric(DemoMetric.class);
+        final DemoMetric metric = new DemoMetric();
         final long startTime = System.currentTimeMillis();
 
         try {
@@ -19,9 +19,11 @@ public class Demo {
         finally {
             final long duration = System.currentTimeMillis() - startTime;
 
-            metric.setStartTime(startTime);
-            metric.setDuration(duration);
+            metric.startTime = startTime;
+            metric.duration = duration;
         }
+
+        tracker.postMetric(metric);
 
         // send the metric (and  any other that may have been created for this thread
         // to the remote server.
