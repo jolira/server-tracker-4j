@@ -41,14 +41,14 @@ This example creates one metric that captures start time and performance of
 some piece of code and sends the results to the server using a background
 thread.
 
-The full source code of this example can be found at https://raw.github.com/jolira/server-tracker-4j/master/src/test/java/com/jolira/st4j/impl/Demo.java.
+The full source code of this example can be found at (http://raw.github.com/jolira/server-tracker-4j/master/src/test/java/com/jolira/st4j/impl/Demo.java "Demo.java").
 
 Metrics
 -------
 
 The client is very flexible when it comes to metrics. Users may define arbitrary
 metric interfaces or objects. An example for a metric object can be found at
-https://raw.github.com/jolira/server-tracker-4j/master/src/test/java/com/jolira/st4j/impl/DemoMetric.java.
+(http://raw.github.com/jolira/server-tracker-4j/master/src/test/java/com/jolira/st4j/impl/DemoMetric.java "DemoMetric.java").
 
 ```
 @Metric("demo")
@@ -77,5 +77,4 @@ Any class or interface used as a metric object should also be tagged with the
 Guice, but is also advantageous when running the library standalone as it
 allows the user to specify an alias for identifying the metric in the
 collected data.
-
 
