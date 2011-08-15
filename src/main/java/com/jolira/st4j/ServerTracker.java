@@ -25,6 +25,19 @@ public interface ServerTracker {
     public <T> T getMetric(final Class<T> type);
 
     /**
+     * Create or retrieve a metric object. If an instance of this metric was already created for this thread this
+     * instance is returned. Otherwise a new instance is returned.
+     * 
+     * @param name
+     *            the name to be used to store the metric
+     * 
+     * @param type
+     *            the type of metric to be returned
+     * @return the generated metric
+     */
+    public <T> T getMetric(String name, final Class<T> type);
+
+    /**
      * submit all metrics collectd for this thread to the remote server tracker.
      */
     public void submit();

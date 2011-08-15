@@ -1,22 +1,13 @@
-server-tracker-4j
-=======================
+package com.jolira.st4j.impl;
 
-A java client library for the Server Tracker. (http://github.com/jolira/server-tracker)
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
-The basic function of this library is to collect metrics inside a Java application
-or an application server and submit these metrics to the remote Server Tracker
-asynchronously.
+import com.jolira.st4j.ServerTracker;
 
-This library has been build to be used with Google's Guice, but can also be run
-without code injection. The instructions below show how to use the abstraction
-standalone and with Guice.
-
-Stand-Along Usage
---------------------
-
-Here is a very simple example for how to use this library (without Guice):
-
-```
+@SuppressWarnings("javadoc")
+public class Demo {
+    public static void main(final String[] args) {
         final Executor executor = Executors.newCachedThreadPool();
         final ServerTracker tracker = new ServerTrackerImpl("tracker.jolira.com:3080", executor);
         final DemoMetric metric = tracker.getMetric(DemoMetric.class);
@@ -35,5 +26,5 @@ Here is a very simple example for how to use this library (without Guice):
         // send the metric (and  any other that may have been created for this thread
         // to the remote server.
         tracker.submit();
-```
-
+    }
+}

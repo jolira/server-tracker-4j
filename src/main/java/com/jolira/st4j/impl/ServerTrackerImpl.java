@@ -73,8 +73,18 @@ public class ServerTrackerImpl implements ServerTracker {
         return name.toLowerCase();
     }
 
-    final static <T> T getLocalMetric(final Class<T> type) {
+    private final static <T> T getLocalMetric(final Class<T> type) {
         final String metricName = getMetricName(type);
+
+        return getLocalMetric(metricName, type);
+    }
+
+    /**
+     * @param metricName
+     * @param type
+     * @return
+     */
+    private static <T> T getLocalMetric(final String metricName, final Class<T> type) {
         final Map<String, Object> _metricByName = localMetrics.get();
         final Object o = _metricByName.get(metricName);
 
@@ -172,6 +182,11 @@ public class ServerTrackerImpl implements ServerTracker {
     @Override
     public <T> T getMetric(final Class<T> type) {
         return getLocalMetric(type);
+    }
+
+    @Override
+    public <T> T getMetric(final String name, final Class<T> type) {
+        return getLocalMetric(name, type);
     }
 
     void post(final Map<String, Map<String, Object>> _collected) {
