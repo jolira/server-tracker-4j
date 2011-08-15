@@ -1,7 +1,7 @@
 A Server Tracker Client Library 4 Java
 ======================================
 
-A java client library for the Server Tracker. (http://github.com/jolira/server-tracker)
+A java client library for the [Server Tracker](http://github.com/jolira/server-tracker).
 
 The basic function of this library is to collect metrics inside a Java application
 or an application server and submit these metrics to the remote Server Tracker
@@ -41,14 +41,15 @@ This example creates one metric that captures start time and performance of
 some piece of code and sends the results to the server using a background
 thread.
 
-The full source code of this example can be found at (http://raw.github.com/jolira/server-tracker-4j/master/src/test/java/com/jolira/st4j/impl/Demo.java "Demo.java").
+The full source code of this example can be found at 
+[Demo.java](http://raw.github.com/jolira/server-tracker-4j/master/src/test/java/com/jolira/st4j/impl/Demo.java).
 
 Metrics
 -------
 
 The client is very flexible when it comes to metrics. Users may define arbitrary
 metric interfaces or objects. An example for a metric object can be found at
-(http://raw.github.com/jolira/server-tracker-4j/master/src/test/java/com/jolira/st4j/impl/DemoMetric.java "DemoMetric.java").
+[DemoMetric.java](http://raw.github.com/jolira/server-tracker-4j/master/src/test/java/com/jolira/st4j/impl/DemoMetric.java).
 
 ```
 @Metric("demo")
@@ -74,7 +75,7 @@ conditions are met:
 
 Any class or interface used as a metric object should also be tagged with the
 ``@Metric`` annotation. This annotation is required when using the metric with
-Guice, but is also advantageous when running the library standalone as it
+Guice, but is also advantageous when running the library stand-alone as it
 allows the user to specify an alias for identifying the metric in the
 collected data.
 
