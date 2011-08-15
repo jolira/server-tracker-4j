@@ -53,4 +53,10 @@
     	<scope>test</scope>
     </dependency>
   </dependencies>
+
+  <scm>
+    <connection>scm:git:git@github.com:jolira/server-tracker-4j.git</connection>
+    <developerConnection>scm:git:git@github.com:jolira/server-tracker-4j.git</developerConnection>
+    <url>http://github.com/jolira/server-tracker-4j</url>
+  </scm>
 </project>
