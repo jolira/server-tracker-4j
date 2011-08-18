@@ -4,7 +4,6 @@ import static com.jolira.st4j.impl.ServerTrackerImpl.getLocalMetric;
 import static com.jolira.st4j.impl.ServerTrackerImpl.postLocalMetric;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Type;
 
 import javax.inject.Named;
 
@@ -46,12 +45,11 @@ public class MetricScope implements Scope {
 
     <T> T getScoped(final Key<T> key, final Provider<T> unscoped) {
         final TypeLiteral<T> literal = key.getTypeLiteral();
-        final Type type = literal.getType();
+        final Class<? super T> type = literal.getRawType();
         final Annotation annotation = key.getAnnotation();
         final String mname = getName(annotation);
-        final Class<? extends Type> cls = type.getClass();
         @SuppressWarnings("unchecked")
-        final T metric = (T)getLocalMetric(mname, cls);
+        final T metric = (T)getLocalMetric(mname, type);
 
         if (metric != null) {
             return metric;

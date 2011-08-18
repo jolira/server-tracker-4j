@@ -142,13 +142,31 @@ public class ServerTrackerImpl implements ServerTracker {
             wr.close();
         }
 
-        final int status = conn.getResponseCode();
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("sending {}", gson.toJson(_pending));
+        }
+
+        final int status = getResponseCode(conn);
 
         if (status != 200) {
             throw new Error(Integer.toString(status) + " response code while submitting " + gson.toJson(_pending));
         }
 
         return true;
+    }
+
+    /**
+     * Return the response code. This method actually executes the call to the remote server. If users want to track the
+     * response time of the remote server tracker, this is the method to instrument.
+     * 
+     * @param conn
+     *            the connection
+     * @return the response code.
+     * 
+     * @throws IOException
+     */
+    protected int getResponseCode(final HttpURLConnection conn) throws IOException {
+        return conn.getResponseCode();
     }
 
     @Override
@@ -193,7 +211,7 @@ public class ServerTrackerImpl implements ServerTracker {
     }
 
     private Map<String, Object> retrievePending() {
-        final Collection<Map<String, Object>> _cycles= retrieveCollectedCycles();
+        final Collection<Map<String, Object>> _cycles = retrieveCollectedCycles();
         final Collection<LogRecord> _logs = retrieveCollectedLogs();
 
         if (_cycles == null && _logs == null) {
@@ -243,7 +261,7 @@ public class ServerTrackerImpl implements ServerTracker {
                 return null;
             }
 
-            final Collection<LogRecord>  pending = new ArrayList<LogRecord>(size);
+            final Collection<LogRecord> pending = new ArrayList<LogRecord>(size);
 
             pending.addAll(logs);
             logs.clear();
