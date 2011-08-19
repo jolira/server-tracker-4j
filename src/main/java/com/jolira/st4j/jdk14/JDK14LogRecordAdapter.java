@@ -24,8 +24,8 @@ public class JDK14LogRecordAdapter extends LogRecord {
      *            the record to be adapted
      */
     public JDK14LogRecordAdapter(final java.util.logging.LogRecord record) {
-        super(record.getLevel().getName(), record.getMessage(), record.getParameters(), record.getSequenceNumber(), record
-                .getSourceClassName(), record.getSourceMethodName(), record.getThreadID(), record.getThrown(), record
-                .getMillis());
+        super(record.getLevel().getName(), record.getMessage(), record.getParameters(), record.getSequenceNumber(),
+                record.getSourceClassName(), record.getSourceMethodName(), record.getThreadID(),
+                record.getThrown() != null ? new JDK14LThroableAdapter(record.getThrown()) : null, record.getMillis());
     }
 }
