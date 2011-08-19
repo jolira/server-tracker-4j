@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonIOException;
 import com.jolira.st4j.LogRecord;
 import com.jolira.st4j.Metric;
 import com.jolira.st4j.ServerTracker;
@@ -40,6 +41,7 @@ import com.jolira.st4j.ServerTracker;
  */
 @Singleton
 public class ServerTrackerImpl implements ServerTracker {
+    private static final String CLASS_NAME = ServerTrackerImpl.class.getName();
     private static final String DEFAULT = "##default";
 
     final static Logger LOG = LoggerFactory.getLogger(ServerTrackerImpl.class);
@@ -133,20 +135,7 @@ public class ServerTrackerImpl implements ServerTracker {
         conn.setDoOutput(true);
         conn.setDoInput(true);
 
-        final OutputStream os = conn.getOutputStream();
-        final OutputStreamWriter wr = new OutputStreamWriter(os);
-
-        try {
-            gson.toJson(_pending, wr);
-        } finally {
-            wr.close();
-        }
-
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("sending {}", gson.toJson(_pending));
-        }
-
-        final int status = getResponseCode(conn);
+        final int status = post(gson, _pending, conn);
 
         if (status != 200) {
             throw new Error(Integer.toString(status) + " response code while submitting " + gson.toJson(_pending));
@@ -156,28 +145,50 @@ public class ServerTrackerImpl implements ServerTracker {
     }
 
     /**
-     * Return the response code. This method actually executes the call to the remote server. If users want to track the
-     * response time of the remote server tracker, this is the method to instrument.
+     * Post to the remote server.
      * 
+     * @param gson
+     * @param pending
      * @param conn
-     *            the connection
-     * @return the response code.
-     * 
+     * @return the status code
      * @throws IOException
+     * @throws JsonIOException
      */
-    protected int getResponseCode(final HttpURLConnection conn) throws IOException {
+    protected int post(final Gson gson, final Map<String, Object> pending, final HttpURLConnection conn)
+            throws IOException, JsonIOException {
+        final OutputStream os = conn.getOutputStream();
+        final OutputStreamWriter wr = new OutputStreamWriter(os);
+
+        try {
+            gson.toJson(pending, wr);
+        } finally {
+            wr.close();
+        }
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("sending {}", gson.toJson(pending));
+        }
+
         return conn.getResponseCode();
     }
 
     @Override
     public void post(final LogRecord record) {
-        logs.add(record);
+        if (CLASS_NAME.equals(record.sourceClassName)) {
+            return;
+        }
+
+        synchronized(logs) {
+            logs.add(record);
+        }
+
+        execute();
     }
 
-    void post(final Map<String, Object> cycle) {
-        synchronized (cycles) {
-            cycles.add(cycle);
+    private final Object lock = new Object();
 
+    void post() {
+        synchronized (lock) {
             if (dispatcherRunning) {
                 return;
             }
@@ -194,7 +205,7 @@ public class ServerTrackerImpl implements ServerTracker {
         } catch (final IOException e) {
             LOG.error("exception while dispatching", e);
         } finally {
-            synchronized (cycles) {
+            synchronized (lock) {
                 dispatcherRunning = false;
             }
         }
@@ -283,16 +294,23 @@ public class ServerTrackerImpl implements ServerTracker {
             return;
         }
 
+        synchronized(cycles) {
+            cycles.add(cycle);
+        }
+
+        execute();
+    }
+
+    private void execute() {
         executor.execute(new Runnable() {
             @Override
             public void run() {
                 try {
-                    post(cycle);
+                    post();
                 } catch (final Throwable e) {
                     LOG.error("error while submitting data", e);
                 }
             }
-
         });
     }
 }
