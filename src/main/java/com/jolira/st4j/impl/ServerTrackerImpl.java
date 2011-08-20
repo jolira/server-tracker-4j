@@ -111,6 +111,24 @@ public class ServerTrackerImpl implements ServerTracker {
 
     private boolean dispatcherRunning = false;
 
+    private final Object lock = new Object();
+
+    private final static int LOG_QUEUE_TRIGGER_SIZE = 2048;
+
+    private static boolean shouldPost(final Collection<Map<String, Object>> cycles, final Collection<LogRecord> logs) {
+        if (cycles != null) {
+            return true;
+        }
+
+        if (logs == null) {
+            return false;
+        }
+
+        final int size = logs.size();
+
+        return size > LOG_QUEUE_TRIGGER_SIZE;
+    }
+
     @Inject
     ServerTrackerImpl(@Named("ServerTrackerServer") final String server, final Executor executor) {
         this.executor = executor;
@@ -142,6 +160,43 @@ public class ServerTrackerImpl implements ServerTracker {
         }
 
         return true;
+    }
+
+    private void execute() {
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    post();
+                } catch (final Throwable e) {
+                    LOG.error("error while submitting data", e);
+                }
+            }
+        });
+    }
+
+    void post() {
+        synchronized (lock) {
+            if (dispatcherRunning) {
+                return;
+            }
+
+            dispatcherRunning = true;
+        }
+
+        try {
+            final Gson gson = new Gson();
+
+            while (dispatch(gson)) {
+                // nothing
+            }
+        } catch (final IOException e) {
+            LOG.error("exception while dispatching", e);
+        } finally {
+            synchronized (lock) {
+                dispatcherRunning = false;
+            }
+        }
     }
 
     /**
@@ -178,37 +233,11 @@ public class ServerTrackerImpl implements ServerTracker {
             return;
         }
 
-        synchronized(logs) {
+        synchronized (logs) {
             logs.add(record);
         }
 
         execute();
-    }
-
-    private final Object lock = new Object();
-
-    void post() {
-        synchronized (lock) {
-            if (dispatcherRunning) {
-                return;
-            }
-
-            dispatcherRunning = true;
-        }
-
-        try {
-            final Gson gson = new Gson();
-
-            while (dispatch(gson)) {
-                // nothing
-            }
-        } catch (final IOException e) {
-            LOG.error("exception while dispatching", e);
-        } finally {
-            synchronized (lock) {
-                dispatcherRunning = false;
-            }
-        }
     }
 
     @Override
@@ -219,32 +248,6 @@ public class ServerTrackerImpl implements ServerTracker {
     @Override
     public void postMetric(final String name, final Object metric) {
         postLocalMetric(name, metric);
-    }
-
-    private Map<String, Object> retrievePending() {
-        final Collection<Map<String, Object>> _cycles = retrieveCollectedCycles();
-        final Collection<LogRecord> _logs = retrieveCollectedLogs();
-
-        if (_cycles == null && _logs == null) {
-            return null;
-        }
-
-        final Map<String, Object> pending = new HashMap<String, Object>();
-
-        if (_cycles != null) {
-            pending.put("cycles", _cycles);
-        }
-
-        if (_logs != null) {
-            pending.put("logs", _logs);
-        }
-
-        final long now = System.currentTimeMillis();
-
-        pending.put("hostname", hostname);
-        pending.put("timestamp", Long.valueOf(now));
-
-        return pending;
     }
 
     private Collection<Map<String, Object>> retrieveCollectedCycles() {
@@ -281,6 +284,32 @@ public class ServerTrackerImpl implements ServerTracker {
         }
     }
 
+    private Map<String, Object> retrievePending() {
+        final Collection<Map<String, Object>> _cycles = retrieveCollectedCycles();
+        final Collection<LogRecord> _logs = retrieveCollectedLogs();
+
+        if (!shouldPost(_cycles, _logs)) {
+            return null;
+        }
+
+        final Map<String, Object> pending = new HashMap<String, Object>();
+
+        if (_cycles != null) {
+            pending.put("cycles", _cycles);
+        }
+
+        if (_logs != null) {
+            pending.put("logs", _logs);
+        }
+
+        final long now = System.currentTimeMillis();
+
+        pending.put("hostname", hostname);
+        pending.put("timestamp", Long.valueOf(now));
+
+        return pending;
+    }
+
     @Override
     public void submit() {
         final Map<String, Object> _cycle = localMetrics.get();
@@ -294,23 +323,10 @@ public class ServerTrackerImpl implements ServerTracker {
             return;
         }
 
-        synchronized(cycles) {
+        synchronized (cycles) {
             cycles.add(cycle);
         }
 
         execute();
-    }
-
-    private void execute() {
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    post();
-                } catch (final Throwable e) {
-                    LOG.error("error while submitting data", e);
-                }
-            }
-        });
     }
 }
