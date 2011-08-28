@@ -1,8 +1,5 @@
 package com.jolira.st4j.impl;
 
-import static com.jolira.st4j.impl.ServerTrackerImpl.getLocalMetric;
-import static com.jolira.st4j.impl.ServerTrackerImpl.postLocalMetric;
-
 import java.lang.annotation.Annotation;
 
 import javax.inject.Named;
@@ -12,6 +9,7 @@ import com.google.inject.Provider;
 import com.google.inject.Scope;
 import com.google.inject.TypeLiteral;
 import com.jolira.st4j.Metric;
+import com.jolira.st4j.MetricStore;
 
 /**
  * Create metrics for Guice.
@@ -22,6 +20,8 @@ import com.jolira.st4j.Metric;
  * 
  */
 public class MetricScope implements Scope {
+    private final MetricStore store;
+
     private static String getName(final Annotation annotation) {
         if (annotation == null) {
             return null;
@@ -43,13 +43,22 @@ public class MetricScope implements Scope {
                 + " can be used to specify metrics.");
     }
 
+    /**
+     * Create a new scope.
+     * 
+     * @param store the store to use
+     */
+    public MetricScope(final MetricStore store) {
+        this.store = store;
+    }
+
     <T> T getScoped(final Key<T> key, final Provider<T> unscoped) {
         final TypeLiteral<T> literal = key.getTypeLiteral();
         final Class<? super T> type = literal.getRawType();
         final Annotation annotation = key.getAnnotation();
         final String mname = getName(annotation);
         @SuppressWarnings("unchecked")
-        final T metric = (T)getLocalMetric(mname, type);
+        final T metric = (T) store.getThreadLocalMetric(mname, type);
 
         if (metric != null) {
             return metric;
@@ -57,7 +66,7 @@ public class MetricScope implements Scope {
 
         final T _metric = unscoped.get();
 
-        postLocalMetric(mname, _metric);
+        store.postThreadLocalMetric(mname, _metric);
 
         return _metric;
     }

@@ -15,14 +15,14 @@ import com.jolira.st4j.Throwable;
  * @since 1.0
  * 
  */
-public class JDK14LThroableAdapter extends Throwable {
+public class JDK14LThrowableAdapter extends Throwable {
     /**
      * Create a new adapter.
      * 
-     * @param e
+     * @param exception
      *            the exception that was thrown
      */
-    public JDK14LThroableAdapter(final java.lang.Throwable e) {
-        super(e.getClass().toString(), e.getMessage(), e.getStackTrace());
+    public JDK14LThrowableAdapter(final java.lang.Throwable exception) {
+        super(exception.getClass().toString(), exception.getMessage(), exception.getStackTrace());
     }
 }

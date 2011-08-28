@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.google.gson.JsonIOException;
 import com.jolira.st4j.LogRecord;
-import com.jolira.st4j.Metric;
+import com.jolira.st4j.MetricStore;
 import com.jolira.st4j.ServerTracker;
 
 /**
@@ -42,7 +42,6 @@ import com.jolira.st4j.ServerTracker;
 @Singleton
 public class ServerTrackerImpl implements ServerTracker {
     private static final String CLASS_NAME = ServerTrackerImpl.class.getName();
-    private static final String DEFAULT = "##default";
 
     final static Logger LOG = LoggerFactory.getLogger(ServerTrackerImpl.class);
 
@@ -56,49 +55,6 @@ public class ServerTrackerImpl implements ServerTracker {
         } catch (final java.net.UnknownHostException ex) {
             throw new Error("unable to determine the hostname", ex);
         }
-    }
-
-    private final static ThreadLocal<Map<String, Object>> localMetrics = new ThreadLocal<Map<String, Object>>() {
-        @Override
-        protected Map<String, Object> initialValue() {
-            return new HashMap<String, Object>();
-        }
-    };
-
-    final static <T> T getLocalMetric(final String mname, final Class<T> type) {
-        final String metricName = getMetricName(mname, type);
-        final Map<String, Object> metricByName = localMetrics.get();
-        final Object obj = metricByName.get(metricName);
-
-        return type.cast(obj);
-    }
-
-    private static String getMetricName(final String mname, final Class<? extends Object> type) {
-        if (mname != null && !DEFAULT.equals(mname)) {
-            return mname;
-        }
-
-        final Metric metric = type.getAnnotation(Metric.class);
-
-        if (metric != null) {
-            final String value = metric.value();
-
-            if (value != null && !DEFAULT.equals(value)) {
-                return value;
-            }
-        }
-
-        final String name = type.getName();
-
-        return name.toLowerCase();
-    }
-
-    static void postLocalMetric(final String mname, final Object metric) {
-        final Class<? extends Object> type = metric.getClass();
-        final String metricName = getMetricName(mname, type);
-        final Map<String, Object> metricByName = localMetrics.get();
-
-        metricByName.put(metricName, metric);
     }
 
     private final Collection<Map<String, Object>> cycles = new LinkedList<Map<String, Object>>();
@@ -115,6 +71,8 @@ public class ServerTrackerImpl implements ServerTracker {
 
     private final static int LOG_QUEUE_TRIGGER_SIZE = 2048;
 
+    private final MetricStore store;
+
     private static boolean shouldPost(final Collection<Map<String, Object>> cycles, final Collection<LogRecord> logs) {
         if (cycles != null) {
             return true;
@@ -129,8 +87,16 @@ public class ServerTrackerImpl implements ServerTracker {
         return size > LOG_QUEUE_TRIGGER_SIZE;
     }
 
+    /**
+     * Create a new instance.
+     * 
+     * @param server the name of the remote metrics server.
+     * @param store the store to be used
+     * @param executor the executor for uploading the metrics and logs in the background
+     */
     @Inject
-    ServerTrackerImpl(@Named("ServerTrackerServer") final String server, final Executor executor) {
+    public ServerTrackerImpl(@Named("ServerTrackerServer") final String server, final MetricStore store, final Executor executor) {
+        this.store = store;
         this.executor = executor;
 
         try {
@@ -242,12 +208,12 @@ public class ServerTrackerImpl implements ServerTracker {
 
     @Override
     public void postMetric(final Object metric) {
-        postLocalMetric(null, metric);
+        store.postThreadLocalMetric(null, metric);
     }
 
     @Override
     public void postMetric(final String name, final Object metric) {
-        postLocalMetric(name, metric);
+        store.postThreadLocalMetric(null, metric);
     }
 
     private Collection<Map<String, Object>> retrieveCollectedCycles() {
@@ -312,11 +278,8 @@ public class ServerTrackerImpl implements ServerTracker {
 
     @Override
     public void submit() {
-        final Map<String, Object> _cycle = localMetrics.get();
-        final Map<String, Object> cycle = new HashMap<String, Object>(_cycle);
-
-        localMetrics.remove();
-
+        final Map<String, Object> metrics = store.getAndResetThreadLocalMetrics();
+        final Map<String, Object> cycle = new HashMap<String, Object>(metrics);
         final int size = cycle.size();
 
         if (size < 1) {

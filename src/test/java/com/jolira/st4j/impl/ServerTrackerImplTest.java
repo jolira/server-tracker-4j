@@ -1,6 +1,5 @@
 package com.jolira.st4j.impl;
 
-import static com.jolira.st4j.impl.ServerTrackerImpl.getLocalMetric;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
@@ -23,13 +22,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.jolira.st4j.Metric;
+import com.jolira.st4j.MetricStore;
 import com.jolira.st4j.jdk14.JDK14LogRecordAdapter;
 import com.jolira.testing.WebServerEmulator;
 
 @SuppressWarnings("javadoc")
 public class ServerTrackerImplTest {
-    final static Logger LOG = LoggerFactory.getLogger(ServerTrackerImplTest.class);
-
     static class MyMetric {
         long valueA;
         String valueB;
@@ -45,26 +43,29 @@ public class ServerTrackerImplTest {
         String valueD;
     }
 
+    final static Logger LOG = LoggerFactory.getLogger(ServerTrackerImplTest.class);
 
     @Test
     public void testGetMetric() {
-        final ServerTrackerImpl tracker = new ServerTrackerImpl("localhost:3080", null);
+        final MetricStore store = new MetricStoreImpl();
+        final ServerTrackerImpl tracker = new ServerTrackerImpl("localhost:3080", store, null);
         final MyMetric m1 = new MyMetric();
         final MySecondMetric m2 = new MySecondMetric();
         final MyThirdMetric m3 = new MyThirdMetric();
 
-        m1.valueA=1234567890l;
-        m1.valueB="test";
-        m2.valueC=0;
-        m3.valueD="jolira";
+        m1.valueA = 1234567890l;
+        m1.valueB = "test";
+        m2.valueC = 0;
+        m3.valueD = "jolira";
 
         tracker.postMetric(m1);
         tracker.postMetric(m2);
         tracker.postMetric(m3);
 
-        final MyMetric r1 = getLocalMetric(null, MyMetric.class);
-        final MySecondMetric r2 = getLocalMetric("com.jolira.st4j.impl.servertrackerimpltest$mysecondmetric", MySecondMetric.class);
-        final MyThirdMetric r3 = getLocalMetric("third", MyThirdMetric.class);
+        final MyMetric r1 = store.getThreadLocalMetric(null, MyMetric.class);
+        final MySecondMetric r2 = store.getThreadLocalMetric("com.jolira.st4j.impl.servertrackerimpltest$mysecondmetric",
+                MySecondMetric.class);
+        final MyThirdMetric r3 = store.getThreadLocalMetric("third", MyThirdMetric.class);
 
         assertSame(m1, r1);
         assertSame(m2, r2);
@@ -112,21 +113,23 @@ public class ServerTrackerImplTest {
         server.start();
 
         final String name = server.getName();
+        final MetricStore store = new MetricStoreImpl();
 
         try {
-            final ServerTrackerImpl tracker = new ServerTrackerImpl(name, new Executor(){
+            final ServerTrackerImpl tracker = new ServerTrackerImpl(name, store, new Executor() {
                 @Override
                 public void execute(final Runnable command) {
                     command.run();
-                }});
+                }
+            });
             final MyMetric m1 = new MyMetric();
             final MySecondMetric m2 = new MySecondMetric();
             final MyThirdMetric m3 = new MyThirdMetric();
 
-            m1.valueA=1234567890l;
-            m1.valueB="test";
-            m2.valueC=0;
-            m3.valueD="jolira";
+            m1.valueA = 1234567890l;
+            m1.valueB = "test";
+            m2.valueC = 0;
+            m3.valueD = "jolira";
 
             tracker.postMetric(m1);
             tracker.postMetric(m2);
@@ -134,8 +137,7 @@ public class ServerTrackerImplTest {
             tracker.post(new JDK14LogRecordAdapter(new LogRecord(Level.SEVERE, "")));
             tracker.submit();
             tracker.submit();
-        }
-        finally {
+        } finally {
             server.stop();
         }
     }
