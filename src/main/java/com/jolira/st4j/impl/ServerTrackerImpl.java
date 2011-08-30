@@ -57,7 +57,7 @@ public class ServerTrackerImpl implements ServerTracker {
         }
     }
 
-    private final Collection<Map<String, Object>> cycles = new LinkedList<Map<String, Object>>();
+    private final Collection<Map<String, Object>> events = new LinkedList<Map<String, Object>>();
 
     private final Collection<LogRecord> logs = new LinkedList<LogRecord>();
 
@@ -73,8 +73,8 @@ public class ServerTrackerImpl implements ServerTracker {
 
     private final MetricStore store;
 
-    private static boolean shouldPost(final Collection<Map<String, Object>> cycles, final Collection<LogRecord> logs) {
-        if (cycles != null) {
+    private static boolean shouldPost(final Collection<Map<String, Object>> events, final Collection<LogRecord> logs) {
+        if (events != null) {
             return true;
         }
 
@@ -217,8 +217,8 @@ public class ServerTrackerImpl implements ServerTracker {
     }
 
     private Collection<Map<String, Object>> retrieveCollectedCycles() {
-        synchronized (cycles) {
-            final int size = cycles.size();
+        synchronized (events) {
+            final int size = events.size();
 
             if (size < 1) {
                 return null;
@@ -226,8 +226,8 @@ public class ServerTrackerImpl implements ServerTracker {
 
             final Collection<Map<String, Object>> pending = new ArrayList<Map<String, Object>>(size);
 
-            pending.addAll(cycles);
-            cycles.clear();
+            pending.addAll(events);
+            events.clear();
 
             return pending;
         }
@@ -251,17 +251,17 @@ public class ServerTrackerImpl implements ServerTracker {
     }
 
     private Map<String, Object> retrievePending() {
-        final Collection<Map<String, Object>> _cycles = retrieveCollectedCycles();
+        final Collection<Map<String, Object>> _events = retrieveCollectedCycles();
         final Collection<LogRecord> _logs = retrieveCollectedLogs();
 
-        if (!shouldPost(_cycles, _logs)) {
+        if (!shouldPost(_events, _logs)) {
             return null;
         }
 
         final Map<String, Object> pending = new HashMap<String, Object>();
 
-        if (_cycles != null) {
-            pending.put("cycles", _cycles);
+        if (_events != null) {
+            pending.put("events", _events);
         }
 
         if (_logs != null) {
@@ -279,15 +279,15 @@ public class ServerTrackerImpl implements ServerTracker {
     @Override
     public void submit() {
         final Map<String, Object> metrics = store.getAndResetThreadLocalMetrics();
-        final Map<String, Object> cycle = new HashMap<String, Object>(metrics);
-        final int size = cycle.size();
+        final Map<String, Object> event = new HashMap<String, Object>(metrics);
+        final int size = event.size();
 
         if (size < 1) {
             return;
         }
 
-        synchronized (cycles) {
-            cycles.add(cycle);
+        synchronized (events) {
+            events.add(event);
         }
 
         execute();
