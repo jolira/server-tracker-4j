@@ -5,6 +5,10 @@
 
 package com.jolira.st4j;
 
+import java.io.InputStream;
+import java.util.Collection;
+import java.util.Map;
+
 /**
  * A interface for submitting metrics to the server.
  * 
@@ -42,6 +46,19 @@ public interface ServerTracker {
      *            the type of metric to be returned
      */
     public void postMetric(String name, final Object metric);
+
+    /**
+     * Post a log record.
+     * 
+     * @param source
+     *            the source of the proxied content (typically the ipaddres or hostname of the remote host sending thh
+     *            data).
+     * @param content
+     *            the content to forward
+     * @return return the deserialized data structure
+     * 
+     */
+    public Collection<Map<String, Object>> proxyEvent(String source, InputStream content);
 
     /**
      * Submits all metrics and logs collected for this thread to the remote server tracker.

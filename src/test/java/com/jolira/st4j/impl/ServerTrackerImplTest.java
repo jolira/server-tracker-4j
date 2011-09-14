@@ -4,9 +4,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.Writer;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -70,6 +78,64 @@ public class ServerTrackerImplTest {
         assertSame(m1, r1);
         assertSame(m2, r2);
         assertSame(m3, r3);
+    }
+
+    @Test
+    public void testProxyEvent() {
+        final MetricStore store = new MetricStoreImpl();
+        final ServerTrackerImpl tracker = new ServerTrackerImpl("localhost:3080", store, new Executor() {
+            @Override
+            public void execute(final Runnable command) {
+                // nothing
+            }
+        });
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final Writer writer = new OutputStreamWriter(out);
+        final PrintWriter pw = new PrintWriter(writer);
+
+        pw.print("{\"session\" : \"1\"}");
+        pw.close();
+
+        final byte[] array = out.toByteArray();
+        final InputStream in = new ByteArrayInputStream(array);
+        final Collection<Map<String, Object>> events = tracker.proxyEvent("test", in);
+
+        assertEquals(1, events.size());
+
+        final Iterator<Map<String, Object>> it = events.iterator();
+        final Map<String, Object> event = it.next();
+
+        assertEquals(1, event.size());
+        assertEquals("1", event.get("session"));
+    }
+
+    @Test
+    public void testProxyEventArray() {
+        final MetricStore store = new MetricStoreImpl();
+        final ServerTrackerImpl tracker = new ServerTrackerImpl("localhost:3080", store, new Executor() {
+            @Override
+            public void execute(final Runnable command) {
+                // nothing
+            }
+        });
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final Writer writer = new OutputStreamWriter(out);
+        final PrintWriter pw = new PrintWriter(writer);
+
+        pw.print("[{\"session\" : \"1\"}]");
+        pw.close();
+
+        final byte[] array = out.toByteArray();
+        final InputStream in = new ByteArrayInputStream(array);
+        final Collection<Map<String, Object>> events = tracker.proxyEvent("test", in);
+
+        assertEquals(1, events.size());
+
+        final Iterator<Map<String, Object>> it = events.iterator();
+        final Map<String, Object> event = it.next();
+
+        assertEquals(1, event.size());
+        assertEquals("1", event.get("session"));
     }
 
     @Test

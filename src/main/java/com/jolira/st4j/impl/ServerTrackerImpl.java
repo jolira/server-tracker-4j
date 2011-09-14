@@ -6,6 +6,8 @@
 package com.jolira.st4j.impl;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
@@ -26,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
 import com.jolira.st4j.LogRecord;
 import com.jolira.st4j.MetricStore;
@@ -286,10 +289,67 @@ public class ServerTrackerImpl implements ServerTracker {
             return;
         }
 
+        addEvent(event);
+    }
+
+    private void addEvent(final Map<String, Object> event) {
         synchronized (events) {
             events.add(event);
         }
 
         execute();
+    }
+
+    @Override
+    public Collection<Map<String, Object>> proxyEvent(final String source, final InputStream content) {
+        final GsonBuilder gsonBuilder = new GsonBuilder();
+
+        gsonBuilder.registerTypeAdapter(Object.class, new NaturalDeserializer());
+
+        final Gson parser = gsonBuilder.create();
+        final Object event = parser.fromJson(new InputStreamReader(content), Object.class);
+        final Class<? extends Object> eventClass = event.getClass();
+
+        if (eventClass.isArray()) {
+            final Object[] _events = (Object[]) event;
+
+            return proxyEvents(source, _events);
+        }
+
+        final Map<String, Object> _event = proxyEvent(source, event);
+        final Collection<Map<String, Object>> result = new ArrayList<Map<String, Object>>(1);
+
+        result.add(_event);
+
+        return result;
+    }
+
+    private Collection<Map<String, Object>> proxyEvents(final String source, final Object[] _events) {
+        final Object[] events_ = _events;
+        final Collection<Map<String, Object>> result = new ArrayList<Map<String, Object>>(events_.length);
+
+        for(final Object event : events_) {
+            @SuppressWarnings("unchecked")
+            final Map<String, Object> _event = (Map<String, Object>) event;
+
+            addEvent(_event);
+            result.add(_event);
+        }
+
+
+        return result;
+    }
+
+    private Map<String, Object> proxyEvent(final String source, final Object event) {
+        if (!(event instanceof Map)) {
+            throw new IllegalArgumentException();
+        }
+
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> _event = (Map<String, Object> )event;
+
+        addEvent(_event);
+
+        return _event;
     }
 }
