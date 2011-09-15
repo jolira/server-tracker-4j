@@ -273,7 +273,7 @@ public class ServerTrackerImpl implements ServerTracker {
 
         final long now = System.currentTimeMillis();
 
-        pending.put("hostname", hostname);
+        pending.put("source", hostname);
         pending.put("timestamp", Long.valueOf(now));
 
         return pending;
@@ -282,12 +282,15 @@ public class ServerTrackerImpl implements ServerTracker {
     @Override
     public void submit() {
         final Map<String, Object> metrics = store.getAndResetThreadLocalMetrics();
-        final Map<String, Object> event = new HashMap<String, Object>(metrics);
-        final int size = event.size();
+        final int size = metrics.size();
 
         if (size < 1) {
             return;
         }
+
+        final Map<String, Object> event = new HashMap<String, Object>();
+
+        event.put("metrics", metrics);
 
         addEvent(event);
     }
@@ -308,6 +311,11 @@ public class ServerTrackerImpl implements ServerTracker {
 
         final Gson parser = gsonBuilder.create();
         final Object event = parser.fromJson(new InputStreamReader(content), Object.class);
+
+        if (event == null) {
+            return null;
+        }
+
         final Class<? extends Object> eventClass = event.getClass();
 
         if (eventClass.isArray()) {
