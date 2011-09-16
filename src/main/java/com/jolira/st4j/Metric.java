@@ -33,4 +33,9 @@ public @interface Metric {
      * @return the name to be for the metric when marshalling
      */
     String value() default "##default";
+
+    /**
+     * @return {@literal true} to indicate that only one of these metric should be produced for any given event.
+     */
+    boolean unique() default true;
 }

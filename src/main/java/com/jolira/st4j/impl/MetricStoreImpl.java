@@ -8,6 +8,8 @@
 
 package com.jolira.st4j.impl;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -66,12 +68,34 @@ public class MetricStoreImpl implements MetricStore {
     }
 
     @Override
-    public void postThreadLocalMetric(final String mname, final Object metric) {
+    public void postThreadLocalMetric(final String mname, final Object metric, final boolean unique) {
         final Class<? extends Object> type = metric.getClass();
         final String metricName = getMetricName(mname, type);
         final Map<String, Object> metricByName = localMetrics.get();
+        final boolean existis = metricByName.containsKey(metricName);
 
-        metricByName.put(metricName, metric);
+        if (unique || !existis) {
+            metricByName.put(metricName, metric);
+            return;
+        }
+
+        final Object existing = metricByName.get(metricName);
+
+        if (existing instanceof Collection) {
+            @SuppressWarnings("unchecked")
+            final
+            Collection<Object> collection = (Collection<Object>) existing;
+
+            collection.add(metric);
+            return;
+        }
+
+        final ArrayList<Object> collection = new ArrayList<Object>();
+
+        collection.add(existing);
+        collection.add(metric);
+
+        metricByName.put(metricName, collection);
     }
 
     @Override

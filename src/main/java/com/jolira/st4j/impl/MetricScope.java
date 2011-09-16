@@ -43,6 +43,16 @@ public class MetricScope implements Scope {
                 + " can be used to specify metrics.");
     }
 
+    private static boolean isUnique(final Annotation annotation) {
+        if (annotation == null || !(annotation instanceof Metric)) {
+            return true; // default
+        }
+
+        final Metric metric = (Metric) annotation;
+
+        return metric.unique();
+    }
+
     /**
      * Create a new scope.
      * 
@@ -57,16 +67,20 @@ public class MetricScope implements Scope {
         final Class<? super T> type = literal.getRawType();
         final Annotation annotation = key.getAnnotation();
         final String mname = getName(annotation);
-        @SuppressWarnings("unchecked")
-        final T metric = (T) store.getThreadLocalMetric(mname, type);
+        final boolean unique = isUnique(annotation);
 
-        if (metric != null) {
-            return metric;
+        if (unique) {
+            @SuppressWarnings("unchecked")
+            final T metric = (T) store.getThreadLocalMetric(mname, type);
+
+            if (metric != null) {
+                return metric;
+            }
         }
 
         final T _metric = unscoped.get();
 
-        store.postThreadLocalMetric(mname, _metric);
+        store.postThreadLocalMetric(mname, _metric, unique);
 
         return _metric;
     }

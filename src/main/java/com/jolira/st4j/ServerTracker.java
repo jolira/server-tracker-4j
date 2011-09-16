@@ -48,6 +48,15 @@ public interface ServerTracker {
     public void postMetric(String name, final Object metric);
 
     /**
+     * Post a metric object.
+     * 
+     * @param name the name of the metric
+     * @param metric the metric object
+     * @param unique indicates if the metric should be unique or not
+     */
+    public void postMetric(String name, Object metric, boolean unique);
+
+    /**
      * Post a log record.
      * 
      * @param source

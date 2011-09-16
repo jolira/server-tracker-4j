@@ -211,12 +211,17 @@ public class ServerTrackerImpl implements ServerTracker {
 
     @Override
     public void postMetric(final Object metric) {
-        store.postThreadLocalMetric(null, metric);
+        store.postThreadLocalMetric(null, metric, true);
     }
 
     @Override
     public void postMetric(final String name, final Object metric) {
-        store.postThreadLocalMetric(null, metric);
+        store.postThreadLocalMetric(null, metric, true);
+    }
+
+    @Override
+    public void postMetric(final String name, final Object metric, final boolean unique) {
+        store.postThreadLocalMetric(null, metric, unique);
     }
 
     private Collection<Map<String, Object>> retrieveCollectedCycles() {
