@@ -50,24 +50,28 @@ public interface ServerTracker {
     /**
      * Post a metric object.
      * 
-     * @param name the name of the metric
-     * @param metric the metric object
-     * @param unique indicates if the metric should be unique or not
+     * @param name
+     *            the name of the metric
+     * @param metric
+     *            the metric object
+     * @param unique
+     *            indicates if the metric should be unique or not
      */
     public void postMetric(String name, Object metric, boolean unique);
 
     /**
      * Post a log record.
      * 
-     * @param source
-     *            the source of the proxied content (typically the ipaddres or hostname of the remote host sending thh
-     *            data).
+     * @param serverInfo
+     *            a set of properties from the server that augments the data that is being forwarded. This field
+     *            enables the the server to add information the the proxied event, such as the hostname and the
+     *            address of the client as well as, in some cases, the session and the visitor ids.
      * @param content
      *            the content to forward
      * @return return the deserialized data structure
      * 
      */
-    public Collection<Map<String, Object>> proxyEvent(String source, InputStream content);
+    public Collection<Map<String, Object>> proxyEvent(Map<String, Object> serverInfo, InputStream content);
 
     /**
      * Submits all metrics and logs collected for this thread to the remote server tracker.

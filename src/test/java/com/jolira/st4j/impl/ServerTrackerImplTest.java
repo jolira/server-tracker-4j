@@ -13,6 +13,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -98,15 +99,20 @@ public class ServerTrackerImplTest {
 
         final byte[] array = out.toByteArray();
         final InputStream in = new ByteArrayInputStream(array);
-        final Collection<Map<String, Object>> events = tracker.proxyEvent("test", in);
+        final HashMap<String, Object> map = new HashMap<String, Object>();
+
+        map.put("visitor", "007");
+
+        final Collection<Map<String, Object>> events = tracker.proxyEvent(map, in);
 
         assertEquals(1, events.size());
 
         final Iterator<Map<String, Object>> it = events.iterator();
         final Map<String, Object> event = it.next();
 
-        assertEquals(1, event.size());
+        assertEquals(2, event.size());
         assertEquals("1", event.get("session"));
+        assertEquals("007", event.get("visitor"));
     }
 
     @Test
@@ -127,15 +133,20 @@ public class ServerTrackerImplTest {
 
         final byte[] array = out.toByteArray();
         final InputStream in = new ByteArrayInputStream(array);
-        final Collection<Map<String, Object>> events = tracker.proxyEvent("test", in);
+        final HashMap<String, Object> map = new HashMap<String, Object>();
+
+        map.put("visitor", "007");
+
+        final Collection<Map<String, Object>> events = tracker.proxyEvent(map, in);
 
         assertEquals(1, events.size());
 
         final Iterator<Map<String, Object>> it = events.iterator();
         final Map<String, Object> event = it.next();
 
-        assertEquals(1, event.size());
+        assertEquals(2, event.size());
         assertEquals("1", event.get("session"));
+        assertEquals("007", event.get("visitor"));
     }
 
     @Test

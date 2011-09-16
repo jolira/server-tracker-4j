@@ -309,7 +309,7 @@ public class ServerTrackerImpl implements ServerTracker {
     }
 
     @Override
-    public Collection<Map<String, Object>> proxyEvent(final String source, final InputStream content) {
+    public Collection<Map<String, Object>> proxyEvent(final Map<String, Object>  eventInfo, final InputStream content) {
         final GsonBuilder gsonBuilder = new GsonBuilder();
 
         gsonBuilder.registerTypeAdapter(Object.class, new NaturalDeserializer());
@@ -326,10 +326,10 @@ public class ServerTrackerImpl implements ServerTracker {
         if (eventClass.isArray()) {
             final Object[] _events = (Object[]) event;
 
-            return proxyEvents(source, _events);
+            return proxyEvents(eventInfo, _events);
         }
 
-        final Map<String, Object> _event = proxyEvent(source, event);
+        final Map<String, Object> _event = proxyEvent(eventInfo, event);
         final Collection<Map<String, Object>> result = new ArrayList<Map<String, Object>>(1);
 
         result.add(_event);
@@ -337,7 +337,7 @@ public class ServerTrackerImpl implements ServerTracker {
         return result;
     }
 
-    private Collection<Map<String, Object>> proxyEvents(final String source, final Object[] _events) {
+    private Collection<Map<String, Object>> proxyEvents(final Map<String, Object> eventInfo, final Object[] _events) {
         final Object[] events_ = _events;
         final Collection<Map<String, Object>> result = new ArrayList<Map<String, Object>>(events_.length);
 
@@ -345,7 +345,8 @@ public class ServerTrackerImpl implements ServerTracker {
             @SuppressWarnings("unchecked")
             final Map<String, Object> _event = (Map<String, Object>) event;
 
-            addEvent(_event);
+            mergeAndAdd(eventInfo, _event);
+
             result.add(_event);
         }
 
@@ -353,7 +354,12 @@ public class ServerTrackerImpl implements ServerTracker {
         return result;
     }
 
-    private Map<String, Object> proxyEvent(final String source, final Object event) {
+    private void mergeAndAdd(final Map<String, Object> eventInfo, final Map<String, Object> event) {
+        event.putAll(eventInfo);
+        addEvent(event);
+    }
+
+    private Map<String, Object> proxyEvent(final Map<String, Object>  eventInfo, final Object event) {
         if (!(event instanceof Map)) {
             throw new IllegalArgumentException();
         }
@@ -361,7 +367,7 @@ public class ServerTrackerImpl implements ServerTracker {
         @SuppressWarnings("unchecked")
         final Map<String, Object> _event = (Map<String, Object> )event;
 
-        addEvent(_event);
+        mergeAndAdd(eventInfo, _event);
 
         return _event;
     }
