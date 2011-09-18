@@ -2,6 +2,7 @@ package com.jolira.st4j.impl;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
@@ -57,7 +58,7 @@ public class ServerTrackerImplTest {
     @Test
     public void testGetMetric() {
         final MetricStore store = new MetricStoreImpl();
-        final ServerTrackerImpl tracker = new ServerTrackerImpl("localhost:3080", store, null);
+        final ServerTrackerImpl tracker = new ServerTrackerImpl("localhost:3080", 2000, store, null);
         final MyMetric m1 = new MyMetric();
         final MySecondMetric m2 = new MySecondMetric();
         final MyThirdMetric m3 = new MyThirdMetric();
@@ -84,7 +85,7 @@ public class ServerTrackerImplTest {
     @Test
     public void testProxyEvent() {
         final MetricStore store = new MetricStoreImpl();
-        final ServerTrackerImpl tracker = new ServerTrackerImpl("localhost:3080", store, new Executor() {
+        final ServerTrackerImpl tracker = new ServerTrackerImpl("localhost:3080", 2000, store, new Executor() {
             @Override
             public void execute(final Runnable command) {
                 // nothing
@@ -118,7 +119,7 @@ public class ServerTrackerImplTest {
     @Test
     public void testProxyEventArray() {
         final MetricStore store = new MetricStoreImpl();
-        final ServerTrackerImpl tracker = new ServerTrackerImpl("localhost:3080", store, new Executor() {
+        final ServerTrackerImpl tracker = new ServerTrackerImpl("localhost:3080", 2000, store, new Executor() {
             @Override
             public void execute(final Runnable command) {
                 // nothing
@@ -151,12 +152,14 @@ public class ServerTrackerImplTest {
 
     @Test
     public void testSubmit() throws Exception {
+        final boolean processed[] = { false };
         final WebServerEmulator server = new WebServerEmulator() {
             @Override
             public void handle(final String target, final HttpServletRequest request, final HttpServletResponse response)
                     throws IOException, ServletException {
                 final String contentType = request.getContentType();
-                assertEquals("/submit/metric", target);
+
+                assertEquals("/submit/events", target);
                 assertEquals("application/json", contentType);
 
                 final ServletInputStream in = request.getInputStream();
@@ -169,12 +172,14 @@ public class ServerTrackerImplTest {
 
                 LOG.info("body: {}", body);
 
-                if (!body.contains("com.jolira.st4j.impl.servertrackerimpltest$mymetric\":{")) {
-                    fail("body does not contain com.jolira.st4j.impl.servertrackerimpltest$mymetric: " + body);
-                }
+                if (!body.contains("\"level\":\"SEVERE\",")) {
+                    if (!body.contains("com.jolira.st4j.impl.servertrackerimpltest$mymetric\":{")) {
+                        fail("body does not contain com.jolira.st4j.impl.servertrackerimpltest$mymetric: " + body);
+                    }
 
-                if (!body.contains("\"third\":{\"valueD\":\"jolira\"}")) {
-                    fail("body does not contain third: " + body);
+                    if (!body.contains("\"third\":{\"valueD\":\"jolira\"}")) {
+                        fail("body does not contain third: " + body);
+                    }
                 }
 
                 response.setContentType(contentType);
@@ -184,6 +189,8 @@ public class ServerTrackerImplTest {
 
                 writer.append("true");
                 writer.close();
+
+                processed[0] = true;
             }
         };
 
@@ -193,7 +200,7 @@ public class ServerTrackerImplTest {
         final MetricStore store = new MetricStoreImpl();
 
         try {
-            final ServerTrackerImpl tracker = new ServerTrackerImpl(name, store, new Executor() {
+            final ServerTrackerImpl tracker = new ServerTrackerImpl(name, 2000, store, new Executor() {
                 @Override
                 public void execute(final Runnable command) {
                     command.run();
@@ -217,5 +224,7 @@ public class ServerTrackerImplTest {
         } finally {
             server.stop();
         }
+
+        assertTrue(processed[0]);
     }
 }

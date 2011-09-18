@@ -10,9 +10,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -33,6 +30,7 @@ import com.google.gson.JsonIOException;
 import com.jolira.st4j.LogRecord;
 import com.jolira.st4j.MetricStore;
 import com.jolira.st4j.ServerTracker;
+import com.jolira.st4j.ServerUnavailableException;
 
 /**
  * Creates metric and stores them in the thread-local field and send metric to the remote server.
@@ -45,8 +43,7 @@ import com.jolira.st4j.ServerTracker;
 @Singleton
 public class ServerTrackerImpl implements ServerTracker {
     private static final String CLASS_NAME = ServerTrackerImpl.class.getName();
-
-    final static Logger LOG = LoggerFactory.getLogger(ServerTrackerImpl.class);
+    static final Logger LOG = LoggerFactory.getLogger(ServerTrackerImpl.class);
 
     private final static String hostname;
 
@@ -60,53 +57,54 @@ public class ServerTrackerImpl implements ServerTracker {
         }
     }
 
+    private static boolean shouldPost(final Collection<Map<String, Object>> events, final Collection<LogRecord> logs) {
+        return events != null || logs != null;
+    }
+
     private final Collection<Map<String, Object>> events = new LinkedList<Map<String, Object>>();
 
     private final Collection<LogRecord> logs = new LinkedList<LogRecord>();
 
     private final Executor executor;
 
-    private final URL url;
+    private final ClientFactory factory;
 
     private boolean dispatcherRunning = false;
 
     private final Object lock = new Object();
 
-    private final static int LOG_QUEUE_TRIGGER_SIZE = 2048;
-
     private final MetricStore store;
-
-    private static boolean shouldPost(final Collection<Map<String, Object>> events, final Collection<LogRecord> logs) {
-        if (events != null) {
-            return true;
-        }
-
-        if (logs == null) {
-            return false;
-        }
-
-        final int size = logs.size();
-
-        return size > LOG_QUEUE_TRIGGER_SIZE;
-    }
 
     /**
      * Create a new instance.
      * 
-     * @param server the name of the remote metrics server.
-     * @param store the store to be used
-     * @param executor the executor for uploading the metrics and logs in the background
+     * @param server
+     *            the name or names of the remote metrics servers. If there is more than one, the different names have
+     *            to be comma delimited. Every name can include a port number (separated from the servername with a
+     *            column, such as "localhost:3080").
+     * @param timeout
+     *            used as the connect timeout
+     * @param store
+     *            the store to be used
+     * @param executor
+     *            the executor for uploading the metrics and logs in the background
+     * @throws IllegalArgumentException thrown if the server cannot be used to form a valid URL
      */
     @Inject
-    public ServerTrackerImpl(@Named("ServerTrackerServer") final String server, final MetricStore store, final Executor executor) {
+    public ServerTrackerImpl(@Named("ServerTrackerServer") final String server,
+            @Named("ServerTrackerTimeout") final int timeout, final MetricStore store, final Executor executor)
+                    throws IllegalArgumentException {
         this.store = store;
         this.executor = executor;
+        factory = new ClientFactory(server, timeout);
+    }
 
-        try {
-            url = new URL("http://" + server + "/submit/metric");
-        } catch (final MalformedURLException e) {
-            throw new Error("invalid server " + server, e);
+    private void addEvent(final Map<String, Object> event) {
+        synchronized (events) {
+            events.add(event);
         }
+
+        execute();
     }
 
     private boolean dispatch(final Gson gson) throws IOException {
@@ -116,17 +114,7 @@ public class ServerTrackerImpl implements ServerTracker {
             return false;
         }
 
-        final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-
-        conn.setRequestProperty("Content-Type", "application/json");
-        conn.setDoOutput(true);
-        conn.setDoInput(true);
-
-        final int status = post(gson, _pending, conn);
-
-        if (status != 200) {
-            throw new Error(Integer.toString(status) + " response code while submitting " + gson.toJson(_pending));
-        }
+        post(gson, _pending, factory);
 
         return true;
     }
@@ -142,6 +130,11 @@ public class ServerTrackerImpl implements ServerTracker {
                 }
             }
         });
+    }
+
+    private void mergeAndAdd(final Map<String, Object> eventInfo, final Map<String, Object> event) {
+        event.putAll(eventInfo);
+        addEvent(event);
     }
 
     void post() {
@@ -171,16 +164,18 @@ public class ServerTrackerImpl implements ServerTracker {
     /**
      * Post to the remote server.
      * 
-     * @param gson
-     * @param pending
-     * @param conn
-     * @return the status code
-     * @throws IOException
-     * @throws JsonIOException
+     * @param gson the GSON object to be used to encode the contents
+     * @param pending the events to be encoded
+     * @param f the factory to be used to create the client
+     * 
+     * @throws IOException could not transmit
+     * @throws JsonIOException could not encode
+     * @throws ServerUnavailableException no server was available to receive the content
      */
-    protected int post(final Gson gson, final Map<String, Object> pending, final HttpURLConnection conn)
-            throws IOException, JsonIOException {
-        final OutputStream os = conn.getOutputStream();
+    protected void post(final Gson gson, final Map<String, Object> pending, final ClientFactory f)
+            throws IOException, JsonIOException, ServerUnavailableException {
+        final Client client = f.makeClient();
+        final OutputStream os = client.getOutputStream();
         final OutputStreamWriter wr = new OutputStreamWriter(os);
 
         try {
@@ -193,7 +188,7 @@ public class ServerTrackerImpl implements ServerTracker {
             LOG.debug("sending {}", gson.toJson(pending));
         }
 
-        return conn.getResponseCode();
+        client.transmit();
     }
 
     @Override
@@ -222,6 +217,64 @@ public class ServerTrackerImpl implements ServerTracker {
     @Override
     public void postMetric(final String name, final Object metric, final boolean unique) {
         store.postThreadLocalMetric(null, metric, unique);
+    }
+
+    @Override
+    public Collection<Map<String, Object>> proxyEvent(final Map<String, Object> eventInfo, final InputStream content) {
+        final GsonBuilder gsonBuilder = new GsonBuilder();
+
+        gsonBuilder.registerTypeAdapter(Object.class, new NaturalDeserializer());
+
+        final Gson parser = gsonBuilder.create();
+        final Object event = parser.fromJson(new InputStreamReader(content), Object.class);
+
+        if (event == null) {
+            return null;
+        }
+
+        final Class<? extends Object> eventClass = event.getClass();
+
+        if (eventClass.isArray()) {
+            final Object[] _events = (Object[]) event;
+
+            return proxyEvents(eventInfo, _events);
+        }
+
+        final Map<String, Object> _event = proxyEvent(eventInfo, event);
+        final Collection<Map<String, Object>> result = new ArrayList<Map<String, Object>>(1);
+
+        result.add(_event);
+
+        return result;
+    }
+
+    private Map<String, Object> proxyEvent(final Map<String, Object> eventInfo, final Object event) {
+        if (!(event instanceof Map)) {
+            throw new IllegalArgumentException();
+        }
+
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> _event = (Map<String, Object>) event;
+
+        mergeAndAdd(eventInfo, _event);
+
+        return _event;
+    }
+
+    private Collection<Map<String, Object>> proxyEvents(final Map<String, Object> eventInfo, final Object[] _events) {
+        final Object[] events_ = _events;
+        final Collection<Map<String, Object>> result = new ArrayList<Map<String, Object>>(events_.length);
+
+        for (final Object event : events_) {
+            @SuppressWarnings("unchecked")
+            final Map<String, Object> _event = (Map<String, Object>) event;
+
+            mergeAndAdd(eventInfo, _event);
+
+            result.add(_event);
+        }
+
+        return result;
     }
 
     private Collection<Map<String, Object>> retrieveCollectedCycles() {
@@ -298,77 +351,5 @@ public class ServerTrackerImpl implements ServerTracker {
         event.put("metrics", metrics);
 
         addEvent(event);
-    }
-
-    private void addEvent(final Map<String, Object> event) {
-        synchronized (events) {
-            events.add(event);
-        }
-
-        execute();
-    }
-
-    @Override
-    public Collection<Map<String, Object>> proxyEvent(final Map<String, Object>  eventInfo, final InputStream content) {
-        final GsonBuilder gsonBuilder = new GsonBuilder();
-
-        gsonBuilder.registerTypeAdapter(Object.class, new NaturalDeserializer());
-
-        final Gson parser = gsonBuilder.create();
-        final Object event = parser.fromJson(new InputStreamReader(content), Object.class);
-
-        if (event == null) {
-            return null;
-        }
-
-        final Class<? extends Object> eventClass = event.getClass();
-
-        if (eventClass.isArray()) {
-            final Object[] _events = (Object[]) event;
-
-            return proxyEvents(eventInfo, _events);
-        }
-
-        final Map<String, Object> _event = proxyEvent(eventInfo, event);
-        final Collection<Map<String, Object>> result = new ArrayList<Map<String, Object>>(1);
-
-        result.add(_event);
-
-        return result;
-    }
-
-    private Collection<Map<String, Object>> proxyEvents(final Map<String, Object> eventInfo, final Object[] _events) {
-        final Object[] events_ = _events;
-        final Collection<Map<String, Object>> result = new ArrayList<Map<String, Object>>(events_.length);
-
-        for(final Object event : events_) {
-            @SuppressWarnings("unchecked")
-            final Map<String, Object> _event = (Map<String, Object>) event;
-
-            mergeAndAdd(eventInfo, _event);
-
-            result.add(_event);
-        }
-
-
-        return result;
-    }
-
-    private void mergeAndAdd(final Map<String, Object> eventInfo, final Map<String, Object> event) {
-        event.putAll(eventInfo);
-        addEvent(event);
-    }
-
-    private Map<String, Object> proxyEvent(final Map<String, Object>  eventInfo, final Object event) {
-        if (!(event instanceof Map)) {
-            throw new IllegalArgumentException();
-        }
-
-        @SuppressWarnings("unchecked")
-        final Map<String, Object> _event = (Map<String, Object> )event;
-
-        mergeAndAdd(eventInfo, _event);
-
-        return _event;
     }
 }

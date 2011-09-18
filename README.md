@@ -3,9 +3,9 @@ A Server Tracker Client Library 4 Java
 
 A java client library for the [Server Tracker](http://github.com/jolira/server-tracker).
 
-The basic function of this library is to collect metrics inside a Java application
-or an application server and submit these metrics to the remote Server Tracker
-asynchronously.
+The basic function of this library is to collect arbitrary metrics and logs inside a
+Java application or an application server and submit these metrics to remote  Server 
+Tracker with low-overhead so the data is available for display.
 
 This library has been build to be used with Google's Guice, but can also be run
 without code injection. The instructions below show how to use the abstraction
@@ -17,8 +17,9 @@ Stand-Alone Usage
 Here is a very simple example for how to use this library (without Guice):
 
 ```
+final int connectTimeout = 2000; // milliseconds
 final Executor executor = Executors.newCachedThreadPool();
-final ServerTracker tracker = new ServerTrackerImpl("tracker.jolira.com:3080", executor);
+final ServerTracker tracker = new ServerTrackerImpl("tracker1.jolira.com:3080,tracker2.jolira.com:3080", connectTimeout, executor);
 final DemoMetric metric = new DemoMetric();
 final long startTime = System.currentTimeMillis();
 

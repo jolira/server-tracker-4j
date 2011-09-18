@@ -11,7 +11,7 @@ public class Demo {
     public static void main(final String[] args) {
         final Executor executor = Executors.newCachedThreadPool();
         final MetricStore store = new MetricStoreImpl();
-        final ServerTracker tracker = new ServerTrackerImpl("tracker.jolira.com:3080", store, executor);
+        final ServerTracker tracker = new ServerTrackerImpl("tracker.jolira.com:3080", 2000, store, executor);
         final DemoMetric metric = new DemoMetric();
         final long startTime = System.currentTimeMillis();
 
