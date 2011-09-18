@@ -22,6 +22,13 @@ import javax.annotation.Nullable;
  */
 public interface MetricStore {
     /**
+     * This call returns all the metrics collected the thread and resets the storage.
+     * 
+     * @return all collected metric.
+     */
+    public Map<String, Object> getAndResetThreadLocalMetrics();
+
+    /**
      * Normalize the name of the metric.
      * 
      * @param mname
@@ -56,11 +63,4 @@ public interface MetricStore {
      *            {@literal true} to indicate that the metric is unique
      */
     public void postThreadLocalMetric(@Nullable String mname, Object metric, boolean unique);
-
-    /**
-     * This call returns all the metrics collected the thread and resets the storage.
-     * 
-     * @return all collected metric.
-     */
-    public Map<String, Object> getAndResetThreadLocalMetrics();
 }

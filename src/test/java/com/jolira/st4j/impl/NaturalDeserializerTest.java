@@ -13,6 +13,24 @@ import com.google.gson.GsonBuilder;
 public class NaturalDeserializerTest {
 
     @Test
+    public void testDeserializeArray() {
+        final GsonBuilder gsonBuilder = new GsonBuilder();
+
+        gsonBuilder.registerTypeAdapter(Object.class, new NaturalDeserializer());
+
+        final Gson parser = gsonBuilder.create();
+        final Object[] events = (Object[]) parser.fromJson("[{\"a\" : \"b\" }]", Object.class);
+
+        assertEquals(1, events.length);
+
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> event = (Map<String, Object>) events[0];
+
+        assertEquals(1, event.size());
+        assertEquals("b", event.get("a"));
+    }
+
+    @Test
     public void testDeserializeBoolean() {
         final GsonBuilder gsonBuilder = new GsonBuilder();
 
@@ -32,25 +50,7 @@ public class NaturalDeserializerTest {
 
         final Gson parser = gsonBuilder.create();
         @SuppressWarnings("unchecked")
-        final Map<String, Object> event = (Map<String, Object>)parser.fromJson("{\"a\" : \"b\" }", Object.class);
-
-        assertEquals(1, event.size());
-        assertEquals("b", event.get("a"));
-    }
-
-    @Test
-    public void testDeserializeArray() {
-        final GsonBuilder gsonBuilder = new GsonBuilder();
-
-        gsonBuilder.registerTypeAdapter(Object.class, new NaturalDeserializer());
-
-        final Gson parser = gsonBuilder.create();
-        final Object[] events = (Object[]) parser.fromJson("[{\"a\" : \"b\" }]", Object.class);
-
-        assertEquals(1, events.length);
-
-        @SuppressWarnings("unchecked")
-        final Map<String, Object> event = (Map<String, Object>) events[0];
+        final Map<String, Object> event = (Map<String, Object>) parser.fromJson("{\"a\" : \"b\" }", Object.class);
 
         assertEquals(1, event.size());
         assertEquals("b", event.get("a"));

@@ -1,9 +1,6 @@
 /**
- * Copyright (c) 2011 jolira.
- * All rights reserved. This program and the accompanying
- * materials are made available under the terms of the
- * GNU Public License 2.0 which is available at
- * http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+ * Copyright (c) 2011 jolira. All rights reserved. This program and the accompanying materials are made available under
+ * the terms of the GNU Public License 2.0 which is available at http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
  */
 
 package com.jolira.st4j.impl;
@@ -25,7 +22,7 @@ import com.jolira.st4j.MetricStore;
  * @author jfk
  * @date Aug 27, 2011 6:41:52 PM
  * @since 1.0
- *
+ * 
  */
 @Singleton
 public class MetricStoreImpl implements MetricStore {
@@ -38,12 +35,12 @@ public class MetricStoreImpl implements MetricStore {
     };
 
     @Override
-    public <T> T getThreadLocalMetric(final String mname, final Class<T> type) {
-        final String metricName = getMetricName(mname, type);
-        final Map<String, Object> metricByName = localMetrics.get();
-        final Object obj = metricByName.get(metricName);
+    public Map<String, Object> getAndResetThreadLocalMetrics() {
+        final Map<String, Object> result = localMetrics.get();
 
-        return type.cast(obj);
+        localMetrics.remove();
+
+        return result;
     }
 
     @Override
@@ -68,6 +65,15 @@ public class MetricStoreImpl implements MetricStore {
     }
 
     @Override
+    public <T> T getThreadLocalMetric(final String mname, final Class<T> type) {
+        final String metricName = getMetricName(mname, type);
+        final Map<String, Object> metricByName = localMetrics.get();
+        final Object obj = metricByName.get(metricName);
+
+        return type.cast(obj);
+    }
+
+    @Override
     public void postThreadLocalMetric(final String mname, final Object metric, final boolean unique) {
         final Class<? extends Object> type = metric.getClass();
         final String metricName = getMetricName(mname, type);
@@ -83,8 +89,7 @@ public class MetricStoreImpl implements MetricStore {
 
         if (existing instanceof Collection) {
             @SuppressWarnings("unchecked")
-            final
-            Collection<Object> collection = (Collection<Object>) existing;
+            final Collection<Object> collection = (Collection<Object>) existing;
 
             collection.add(metric);
             return;
@@ -96,14 +101,5 @@ public class MetricStoreImpl implements MetricStore {
         collection.add(metric);
 
         metricByName.put(metricName, collection);
-    }
-
-    @Override
-    public Map<String, Object> getAndResetThreadLocalMetrics() {
-        final Map<String, Object> result = localMetrics.get();
-
-        localMetrics.remove();
-
-        return result;
     }
 }

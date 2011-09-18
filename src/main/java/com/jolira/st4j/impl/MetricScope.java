@@ -20,8 +20,6 @@ import com.jolira.st4j.MetricStore;
  * 
  */
 public class MetricScope implements Scope {
-    private final MetricStore store;
-
     private static String getName(final Annotation annotation) {
         if (annotation == null) {
             return null;
@@ -53,10 +51,13 @@ public class MetricScope implements Scope {
         return metric.unique();
     }
 
+    private final MetricStore store;
+
     /**
      * Create a new scope.
      * 
-     * @param store the store to use
+     * @param store
+     *            the store to use
      */
     public MetricScope(final MetricStore store) {
         this.store = store;

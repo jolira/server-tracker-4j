@@ -28,7 +28,7 @@ public interface ServerTracker {
 
     /**
      * Adds a metric object to thread-local storage to it can be dispatch to the server in a subsequent
-     * {@link #submit()} call. The name of the metric will be derived from the name of the class or a {@link Metric}
+     * {@link #submit(Map)} call. The name of the metric will be derived from the name of the class or a {@link Metric}
      * annotation if one if present on the type.
      * 
      * @param metric
@@ -38,7 +38,7 @@ public interface ServerTracker {
 
     /**
      * Adds a metric object to thread-local storage to it can be dispatch to the server in a subsequent
-     * {@link #submit()} call.
+     * {@link #submit(Map)} call.
      * 
      * @param name
      *            the name to be used to store the metric
@@ -63,9 +63,9 @@ public interface ServerTracker {
      * Post a log record.
      * 
      * @param serverInfo
-     *            a set of properties from the server that augments the data that is being forwarded. This field
-     *            enables the the server to add information the the proxied event, such as the hostname and the
-     *            address of the client as well as, in some cases, the session and the visitor ids.
+     *            a set of properties from the server that augments the data that is being forwarded. This field enables
+     *            the the server to add information the the proxied event, such as the hostname and the address of the
+     *            client as well as, in some cases, the session and the visitor ids.
      * @param content
      *            the content to forward
      * @return return the deserialized data structure
@@ -75,6 +75,9 @@ public interface ServerTracker {
 
     /**
      * Submits all metrics and logs collected for this thread to the remote server tracker.
+     * 
+     * @param eventInfo
+     *            the event properties
      */
-    public void submit();
+    public void submit(Map<String, Object> eventInfo);
 }

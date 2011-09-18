@@ -73,8 +73,8 @@ public class ServerTrackerImplTest {
         tracker.postMetric(m3);
 
         final MyMetric r1 = store.getThreadLocalMetric(null, MyMetric.class);
-        final MySecondMetric r2 = store.getThreadLocalMetric("com.jolira.st4j.impl.servertrackerimpltest$mysecondmetric",
-                MySecondMetric.class);
+        final MySecondMetric r2 = store.getThreadLocalMetric(
+                "com.jolira.st4j.impl.servertrackerimpltest$mysecondmetric", MySecondMetric.class);
         final MyThirdMetric r3 = store.getThreadLocalMetric("third", MyThirdMetric.class);
 
         assertSame(m1, r1);
@@ -219,8 +219,14 @@ public class ServerTrackerImplTest {
             tracker.postMetric(m2);
             tracker.postMetric(m3);
             tracker.post(new JDK14LogRecordAdapter(new LogRecord(Level.SEVERE, "")));
-            tracker.submit();
-            tracker.submit();
+
+            final Map<String, Object> eventInfo = new HashMap<String, Object>();
+
+            eventInfo.put("source", "source");
+            eventInfo.put("user", "007");
+
+            tracker.submit(eventInfo);
+            tracker.submit(eventInfo);
         } finally {
             server.stop();
         }

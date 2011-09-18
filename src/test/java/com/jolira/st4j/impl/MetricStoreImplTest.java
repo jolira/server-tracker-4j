@@ -19,17 +19,19 @@ public class MetricStoreImplTest {
     }
 
     @Test
-    public void testPostUnique() {
+    public void testGetName1() {
         final MetricStore store = new MetricStoreImpl();
+        final String name1 = store.getMetricName(null, MyMetric.class);
 
-        store.postThreadLocalMetric("test", store, true);
+        assertEquals("x", name1);
+    }
 
-        final Map<String, Object> metrics = store.getAndResetThreadLocalMetrics();
+    @Test
+    public void testGetName2() {
+        final MetricStore store = new MetricStoreImpl();
+        final String name1 = store.getMetricName(null, String.class);
 
-        assertEquals(1, metrics.size());
-        final Object object = metrics.get("test");
-
-        assertSame(store, object);
+        assertEquals("java.lang.string", name1);
     }
 
     @Test
@@ -53,18 +55,16 @@ public class MetricStoreImplTest {
     }
 
     @Test
-    public void testGetName1() {
+    public void testPostUnique() {
         final MetricStore store = new MetricStoreImpl();
-        final String name1 = store.getMetricName(null, MyMetric.class);
 
-        assertEquals("x", name1);
-    }
+        store.postThreadLocalMetric("test", store, true);
 
-    @Test
-    public void testGetName2() {
-        final MetricStore store = new MetricStoreImpl();
-        final String name1 = store.getMetricName(null, String.class);
+        final Map<String, Object> metrics = store.getAndResetThreadLocalMetrics();
 
-        assertEquals("java.lang.string", name1);
+        assertEquals(1, metrics.size());
+        final Object object = metrics.get("test");
+
+        assertSame(store, object);
     }
 }

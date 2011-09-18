@@ -88,7 +88,8 @@ public class ServerTrackerImpl implements ServerTracker {
      *            the store to be used
      * @param executor
      *            the executor for uploading the metrics and logs in the background
-     * @throws IllegalArgumentException thrown if the server cannot be used to form a valid URL
+     * @throws IllegalArgumentException
+     *             thrown if the server cannot be used to form a valid URL
      */
     @Inject
     public ServerTrackerImpl(@Named("ServerTrackerServer") final String server,
@@ -164,16 +165,22 @@ public class ServerTrackerImpl implements ServerTracker {
     /**
      * Post to the remote server.
      * 
-     * @param gson the GSON object to be used to encode the contents
-     * @param pending the events to be encoded
-     * @param f the factory to be used to create the client
+     * @param gson
+     *            the GSON object to be used to encode the contents
+     * @param pending
+     *            the events to be encoded
+     * @param f
+     *            the factory to be used to create the client
      * 
-     * @throws IOException could not transmit
-     * @throws JsonIOException could not encode
-     * @throws ServerUnavailableException no server was available to receive the content
+     * @throws IOException
+     *             could not transmit
+     * @throws JsonIOException
+     *             could not encode
+     * @throws ServerUnavailableException
+     *             no server was available to receive the content
      */
-    protected void post(final Gson gson, final Map<String, Object> pending, final ClientFactory f)
-            throws IOException, JsonIOException, ServerUnavailableException {
+    protected void post(final Gson gson, final Map<String, Object> pending, final ClientFactory f) throws IOException,
+    JsonIOException, ServerUnavailableException {
         final Client client = f.makeClient();
         final OutputStream os = client.getOutputStream();
         final OutputStreamWriter wr = new OutputStreamWriter(os);
@@ -338,7 +345,7 @@ public class ServerTrackerImpl implements ServerTracker {
     }
 
     @Override
-    public void submit() {
+    public void submit(final Map<String, Object> eventInfo) {
         final Map<String, Object> metrics = store.getAndResetThreadLocalMetrics();
         final int size = metrics.size();
 
@@ -349,6 +356,7 @@ public class ServerTrackerImpl implements ServerTracker {
         final Map<String, Object> event = new HashMap<String, Object>();
 
         event.put("metrics", metrics);
+        event.putAll(eventInfo);
 
         addEvent(event);
     }

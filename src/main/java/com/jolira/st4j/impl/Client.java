@@ -44,6 +44,18 @@ class Client {
         return buffer;
     }
 
+    private URL getURL(final Random random) throws ServerUnavailableException {
+        final int size = urls.size();
+
+        if (size < 1) {
+            throw new ServerUnavailableException();
+        }
+
+        final int pos = random.nextInt(size);
+
+        return urls.remove(pos);
+    }
+
     void transmit() throws ServerUnavailableException {
         final Random random = new Random();
 
@@ -81,17 +93,5 @@ class Client {
         out.write(content);
 
         return conn.getResponseCode();
-    }
-
-    private URL getURL(final Random random) throws ServerUnavailableException {
-        final int size = urls.size();
-
-        if (size < 1) {
-            throw new ServerUnavailableException();
-        }
-
-        final int pos = random.nextInt(size);
-
-        return urls.remove(pos);
     }
 }
