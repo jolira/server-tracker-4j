@@ -46,7 +46,7 @@ public class Timer {
     public long stop() {
         final long current = System.currentTimeMillis();
 
-        return setDuration(current - timestamp);
+        return duration = current - timestamp;
     }
 
     @Override
