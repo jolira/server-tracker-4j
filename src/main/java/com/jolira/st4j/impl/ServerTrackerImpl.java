@@ -94,7 +94,7 @@ public class ServerTrackerImpl implements ServerTracker {
     @Inject
     public ServerTrackerImpl(@Named("ServerTrackerServer") final String server,
             @Named("ServerTrackerTimeout") final int timeout, final MetricStore store, final Executor executor)
-                    throws IllegalArgumentException {
+            throws IllegalArgumentException {
         this.store = store;
         this.executor = executor;
         factory = new ClientFactory(server, timeout);
@@ -180,7 +180,7 @@ public class ServerTrackerImpl implements ServerTracker {
      *             no server was available to receive the content
      */
     protected void post(final Gson gson, final Map<String, Object> pending, final ClientFactory f) throws IOException,
-    JsonIOException, ServerUnavailableException {
+            JsonIOException, ServerUnavailableException {
         final Client client = f.makeClient();
         final OutputStream os = client.getOutputStream();
         final OutputStreamWriter wr = new OutputStreamWriter(os);

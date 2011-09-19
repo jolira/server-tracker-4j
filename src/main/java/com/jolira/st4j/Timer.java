@@ -19,7 +19,8 @@ public class Timer {
     /**
      * The system time when the timer object was created.
      */
-    private final long timestamp = System.currentTimeMillis();
+    public final long timestamp = System.currentTimeMillis();
+
     private long duration;
 
     /**
@@ -31,13 +32,21 @@ public class Timer {
      * The url associated with the timer
      */
     public URL url;
+
+    /**
+     * An additional source identifier, if available
+     */
+    public String source;
+
     /**
      * Stop the timer.
+     * 
+     * @return the duration in ms
      */
-    public void stop() {
+    public long stop() {
         final long current = System.currentTimeMillis();
 
-        duration = current - timestamp;
+        return setDuration(current - timestamp);
     }
 
     @Override
@@ -47,13 +56,22 @@ public class Timer {
         builder.append("Timer [timestamp=");
         builder.append(timestamp);
         builder.append(", duration=");
-        builder.append(duration);
+        builder.append(getDuration());
         builder.append(", category=");
         builder.append(category);
+        builder.append(", source=");
+        builder.append(source);
         builder.append(", url=");
         builder.append(url);
         builder.append("]");
 
         return builder.toString();
+    }
+
+    /**
+     * @return the duration
+     */
+    public long getDuration() {
+        return duration;
     }
 }

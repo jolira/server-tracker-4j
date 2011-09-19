@@ -93,6 +93,18 @@ public class URL {
         }
     }
 
+    private static String decode(final String value) {
+        if (value == null) {
+            return null;
+        }
+
+        try {
+            return URLDecoder.decode(value, "utf-8");
+        } catch (final UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private static String getHost(final String value) {
         final int idx = value.indexOf('@');
         final String hostport = value.substring(idx + 1);
@@ -206,7 +218,7 @@ public class URL {
         }
 
         final String path = urlPath.substring(0, questionMarkPos);
-        final String query = urlPath.substring(questionMarkPos+1);
+        final String query = urlPath.substring(questionMarkPos + 1);
         final Map<String, String> params = parseParams(query);
 
         return new WellformedURL(protocol, username, password, host, port, path, params);
@@ -216,27 +228,15 @@ public class URL {
         final StringTokenizer izer = new StringTokenizer(query, "&");
         final Map<String, String> params = new HashMap<String, String>();
 
-        while(izer.hasMoreTokens()) {
+        while (izer.hasMoreTokens()) {
             final String token = izer.nextToken();
             final int equalsPos = token.indexOf('=');
             final String key = equalsPos == -1 ? token : token.substring(0, equalsPos);
-            final String value = equalsPos == -1 ? null : token.substring(equalsPos+1);
+            final String value = equalsPos == -1 ? null : token.substring(equalsPos + 1);
 
             params.put(decode(key), decode(value));
         }
 
         return params;
-    }
-
-    private static String decode(final String value) {
-        if (value == null) {
-            return null;
-        }
-
-        try {
-            return URLDecoder.decode(value, "utf-8");
-        } catch (final UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
