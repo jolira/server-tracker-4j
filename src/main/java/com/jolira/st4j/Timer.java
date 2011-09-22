@@ -56,7 +56,7 @@ public class Timer {
         builder.append("Timer [timestamp=");
         builder.append(timestamp);
         builder.append(", duration=");
-        builder.append(getDuration());
+        builder.append(duration);
         builder.append(", category=");
         builder.append(category);
         builder.append(", source=");
