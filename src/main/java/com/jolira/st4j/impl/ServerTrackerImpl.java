@@ -46,6 +46,7 @@ public class ServerTrackerImpl implements ServerTracker {
     static final Logger LOG = LoggerFactory.getLogger(ServerTrackerImpl.class);
 
     private final static String hostname;
+    private static final int LOGS_BATCH_SIZE = 100;
 
     static {
         try {
@@ -55,10 +56,6 @@ public class ServerTrackerImpl implements ServerTracker {
         } catch (final java.net.UnknownHostException ex) {
             throw new Error("unable to determine the hostname", ex);
         }
-    }
-
-    private static boolean shouldPost(final Collection<Map<String, Object>> events, final Collection<LogRecord> logs) {
-        return events != null || logs != null;
     }
 
     private final Collection<Map<String, Object>> events = new LinkedList<Map<String, Object>>();
@@ -94,7 +91,7 @@ public class ServerTrackerImpl implements ServerTracker {
     @Inject
     public ServerTrackerImpl(@Named("ServerTrackerServer") final String server,
             @Named("ServerTrackerTimeout") final int timeout, final MetricStore store, final Executor executor)
-            throws IllegalArgumentException {
+                    throws IllegalArgumentException {
         this.store = store;
         this.executor = executor;
         factory = new ClientFactory(server, timeout);
@@ -180,7 +177,7 @@ public class ServerTrackerImpl implements ServerTracker {
      *             no server was available to receive the content
      */
     protected void post(final Gson gson, final Map<String, Object> pending, final ClientFactory f) throws IOException,
-            JsonIOException, ServerUnavailableException {
+    JsonIOException, ServerUnavailableException {
         final Client client = f.makeClient();
         final OutputStream os = client.getOutputStream();
         final OutputStreamWriter wr = new OutputStreamWriter(os);
@@ -301,11 +298,13 @@ public class ServerTrackerImpl implements ServerTracker {
         }
     }
 
-    private Collection<LogRecord> retrieveCollectedLogs() {
+    private Collection<LogRecord> retrieveCollectedLogs(final boolean willTransmitEvents) {
+        final int limit = willTransmitEvents ? 1 : LOGS_BATCH_SIZE;
+
         synchronized (logs) {
             final int size = logs.size();
 
-            if (size < 1) {
+            if (size < limit) {
                 return null;
             }
 
@@ -320,9 +319,9 @@ public class ServerTrackerImpl implements ServerTracker {
 
     private Map<String, Object> retrievePending() {
         final Collection<Map<String, Object>> _events = retrieveCollectedCycles();
-        final Collection<LogRecord> _logs = retrieveCollectedLogs();
+        final Collection<LogRecord> _logs = retrieveCollectedLogs(_events != null);
 
-        if (!shouldPost(_events, _logs)) {
+        if (_events == null  && _logs == null) {
             return null;
         }
 
