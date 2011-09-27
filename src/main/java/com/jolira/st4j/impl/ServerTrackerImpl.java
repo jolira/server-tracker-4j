@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.Executor;
 
 import javax.inject.Inject;
@@ -60,7 +61,7 @@ public class ServerTrackerImpl implements ServerTracker {
 
     private final Collection<Map<String, Object>> events = new LinkedList<Map<String, Object>>();
 
-    private final Collection<LogRecord> logs = new LinkedList<LogRecord>();
+    private final Collection<Object> logs = new LinkedList<Object>();
 
     private final Executor executor;
 
@@ -105,6 +106,12 @@ public class ServerTrackerImpl implements ServerTracker {
         execute();
     }
 
+    private void addLog(final Map<String, Object> log) {
+        synchronized (logs) {
+            logs.add(log);
+        }
+    }
+
     private boolean dispatch(final Gson gson) throws IOException {
         final Map<String, Object> _pending = retrievePending();
 
@@ -130,9 +137,20 @@ public class ServerTrackerImpl implements ServerTracker {
         });
     }
 
-    private void mergeAndAdd(final Map<String, Object> eventInfo, final Map<String, Object> event) {
-        event.putAll(eventInfo);
-        addEvent(event);
+    private void merge(final Map<String, Object> source, final Map<String, Object> target) {
+        final Collection<Entry<String, Object>> entries = source.entrySet();
+
+        for (final Entry<String, Object> entry : entries) {
+            final String key = entry.getKey();
+
+            if (target.containsKey(key)) {
+                continue;
+            }
+
+            final Object value = entry.getValue();
+
+            target.put(key, value);
+        }
     }
 
     void post() {
@@ -224,58 +242,46 @@ public class ServerTrackerImpl implements ServerTracker {
     }
 
     @Override
-    public Collection<Map<String, Object>> proxyEvent(final Map<String, Object> eventInfo, final InputStream content) {
+    public Collection<Map<String, Object>> proxyEvent(final Map<String, Object> eventInfo, final InputStream content) throws IllegalArgumentException {
         final GsonBuilder gsonBuilder = new GsonBuilder();
 
         gsonBuilder.registerTypeAdapter(Object.class, new NaturalDeserializer());
 
         final Gson parser = gsonBuilder.create();
-        final Object event = parser.fromJson(new InputStreamReader(content), Object.class);
+        final Object _payload = parser.fromJson(new InputStreamReader(content), Object.class);
 
-        if (event == null) {
-            return null;
-        }
-
-        final Class<? extends Object> eventClass = event.getClass();
-
-        if (eventClass.isArray()) {
-            final Object[] _events = (Object[]) event;
-
-            return proxyEvents(eventInfo, _events);
-        }
-
-        final Map<String, Object> _event = proxyEvent(eventInfo, event);
-        final Collection<Map<String, Object>> result = new ArrayList<Map<String, Object>>(1);
-
-        result.add(_event);
-
-        return result;
-    }
-
-    private Map<String, Object> proxyEvent(final Map<String, Object> eventInfo, final Object event) {
-        if (!(event instanceof Map)) {
+        if (_payload == null || !(_payload instanceof Map)) {
             throw new IllegalArgumentException();
         }
 
         @SuppressWarnings("unchecked")
-        final Map<String, Object> _event = (Map<String, Object>) event;
+        final Map<String, Object> payload = (Map<String, Object>) _payload;
 
-        mergeAndAdd(eventInfo, _event);
 
-        return _event;
-    }
+        @SuppressWarnings("unchecked")
+        final Collection<Map<String, Object>> _events = (Collection<Map<String, Object>>) payload.get("events");
+        @SuppressWarnings("unchecked")
+        final Collection<Map<String, Object>> _logs = (Collection<Map<String, Object>>) payload.get("logs");
 
-    private Collection<Map<String, Object>> proxyEvents(final Map<String, Object> eventInfo, final Object[] _events) {
-        final Object[] events_ = _events;
-        final Collection<Map<String, Object>> result = new ArrayList<Map<String, Object>>(events_.length);
+        payload.remove("events");
+        payload.remove("logs");
+        merge(eventInfo, payload);
 
-        for (final Object event : events_) {
-            @SuppressWarnings("unchecked")
-            final Map<String, Object> _event = (Map<String, Object>) event;
+        if (_logs != null) {
+            for (final Map<String, Object> log : _logs) {
+                merge(payload, log);
+                addLog(log);
+            }
+        }
 
-            mergeAndAdd(eventInfo, _event);
+        final Collection<Map<String, Object>> result = new ArrayList<Map<String, Object>>(1);
 
-            result.add(_event);
+        if (_events != null) {
+            for (final Map<String, Object> event : _events) {
+                merge(payload, event);
+                addEvent(event);
+                result.add(event);
+            }
         }
 
         return result;
@@ -298,7 +304,7 @@ public class ServerTrackerImpl implements ServerTracker {
         }
     }
 
-    private Collection<LogRecord> retrieveCollectedLogs(final boolean willTransmitEvents) {
+    private Collection<Object> retrieveCollectedLogs(final boolean willTransmitEvents) {
         final int limit = willTransmitEvents ? 1 : LOGS_BATCH_SIZE;
 
         synchronized (logs) {
@@ -308,7 +314,7 @@ public class ServerTrackerImpl implements ServerTracker {
                 return null;
             }
 
-            final Collection<LogRecord> pending = new ArrayList<LogRecord>(size);
+            final Collection<Object> pending = new ArrayList<Object>(size);
 
             pending.addAll(logs);
             logs.clear();
@@ -319,9 +325,9 @@ public class ServerTrackerImpl implements ServerTracker {
 
     private Map<String, Object> retrievePending() {
         final Collection<Map<String, Object>> _events = retrieveCollectedCycles();
-        final Collection<LogRecord> _logs = retrieveCollectedLogs(_events != null);
+        final Collection<Object> _logs = retrieveCollectedLogs(_events != null);
 
-        if (_events == null  && _logs == null) {
+        if (_events == null && _logs == null) {
             return null;
         }
 
@@ -355,8 +361,7 @@ public class ServerTrackerImpl implements ServerTracker {
         final Map<String, Object> event = new HashMap<String, Object>();
 
         event.put("metrics", metrics);
-        event.putAll(eventInfo);
-
+        merge(eventInfo, event);
         addEvent(event);
     }
 }

@@ -60,7 +60,16 @@ public interface ServerTracker {
     public void postMetric(String name, Object metric, boolean unique);
 
     /**
-     * Post a log record.
+     * Forward events and logs received from devices. The content has to be valid JSON in the following format:
+     * 
+     * <pre>
+     * {
+     *   "logs" : [<log1>, <log2>, ...],
+     *   "events" : [<event1>, <event2>, ...]
+     * }
+     * </pre>
+     * 
+     * Both events and logs are optional. If present, an array of events and logs needs to be passed.
      * 
      * @param serverInfo
      *            a set of properties from the server that augments the data that is being forwarded. This field enables
@@ -69,9 +78,10 @@ public interface ServerTracker {
      * @param content
      *            the content to forward
      * @return return the deserialized data structure
+     * @throws IllegalArgumentException thrown if the JSON is not in the proper format.
      * 
      */
-    public Collection<Map<String, Object>> proxyEvent(Map<String, Object> serverInfo, InputStream content);
+    public Collection<Map<String, Object>> proxyEvent(Map<String, Object> serverInfo, InputStream content) throws IllegalArgumentException;
 
     /**
      * Submits all metrics and logs collected for this thread to the remote server tracker.

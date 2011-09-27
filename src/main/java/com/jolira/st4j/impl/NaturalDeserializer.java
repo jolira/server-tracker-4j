@@ -2,6 +2,8 @@ package com.jolira.st4j.impl;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,13 +39,17 @@ class NaturalDeserializer implements JsonDeserializer<Object> {
     }
 
     private Object handleArray(final JsonArray json, final JsonDeserializationContext context) {
-        final Object[] array = new Object[json.size()];
+        final int size = json.size();
+        final Collection<Object> collection = new ArrayList<Object>(size);
 
-        for (int i = 0; i < array.length; i++) {
-            array[i] = context.deserialize(json.get(i), Object.class);
+        for (int i = 0; i < size; i++) {
+            final JsonElement value = json.get(i);
+            final Object deserialized = context.deserialize(value, Object.class);
+
+            collection.add(deserialized);
         }
 
-        return array;
+        return collection;
     }
 
     private Object handleObject(final JsonObject json, final JsonDeserializationContext context) {

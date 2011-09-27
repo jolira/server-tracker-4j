@@ -82,6 +82,31 @@ public class ServerTrackerImplTest {
         assertSame(m3, r3);
     }
 
+    @Test(expected=IllegalArgumentException.class)
+    public void testIllegalPayload() {
+        final MetricStore store = new MetricStoreImpl();
+        final ServerTrackerImpl tracker = new ServerTrackerImpl("localhost:3080", 2000, store, new Executor() {
+            @Override
+            public void execute(final Runnable command) {
+                // nothing
+            }
+        });
+        final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        final Writer writer = new OutputStreamWriter(out);
+        final PrintWriter pw = new PrintWriter(writer);
+
+        pw.print("[]");
+        pw.close();
+
+        final byte[] array = out.toByteArray();
+        final InputStream in = new ByteArrayInputStream(array);
+        final HashMap<String, Object> map = new HashMap<String, Object>();
+
+        map.put("visitor", "007");
+
+        tracker.proxyEvent(map, in);
+    }
+
     @Test
     public void testProxyEvent() {
         final MetricStore store = new MetricStoreImpl();
@@ -95,7 +120,7 @@ public class ServerTrackerImplTest {
         final Writer writer = new OutputStreamWriter(out);
         final PrintWriter pw = new PrintWriter(writer);
 
-        pw.print("{\"session\" : \"1\"}");
+        pw.print("{\"events\":[{\"session\" : \"1\"}], \"logs\":[{\"source:\":1}]}");
         pw.close();
 
         final byte[] array = out.toByteArray();
@@ -129,7 +154,7 @@ public class ServerTrackerImplTest {
         final Writer writer = new OutputStreamWriter(out);
         final PrintWriter pw = new PrintWriter(writer);
 
-        pw.print("[{\"session\" : \"1\"}]");
+        pw.print("{\"events\":[{\"session\" : \"1\"}, {\"session\" : \"2\", \"visitor\" : \"008\"}]}");
         pw.close();
 
         final byte[] array = out.toByteArray();
@@ -138,16 +163,22 @@ public class ServerTrackerImplTest {
 
         map.put("visitor", "007");
 
-        final Collection<Map<String, Object>> events = tracker.proxyEvent(map, in);
+        final Collection<Map<String, Object>> events1 = tracker.proxyEvent(map, in);
 
-        assertEquals(1, events.size());
+        assertEquals(2, events1.size());
 
-        final Iterator<Map<String, Object>> it = events.iterator();
+        final Iterator<Map<String, Object>> it = events1.iterator();
         final Map<String, Object> event = it.next();
 
         assertEquals(2, event.size());
         assertEquals("1", event.get("session"));
         assertEquals("007", event.get("visitor"));
+
+        final Map<String, Object> event2 = it.next();
+
+        assertEquals(2, event2.size());
+        assertEquals("2", event2.get("session"));
+        assertEquals("008", event2.get("visitor"));
     }
 
     @Test
