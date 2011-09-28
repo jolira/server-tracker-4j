@@ -20,6 +20,19 @@ import com.jolira.st4j.MetricStore;
  * 
  */
 public class MetricScope implements Scope {
+    private static <T> Annotation getAnnotation(final Key<T> key) {
+        final Annotation annotation = key.getAnnotation();
+
+        if (annotation != null) {
+            return annotation;
+        }
+
+        final TypeLiteral<T> literal = key.getTypeLiteral();
+        final Class<? super T> raw = literal.getRawType();
+
+        return raw.getAnnotation(Metric.class);
+    }
+
     private static String getName(final Annotation annotation) {
         if (annotation == null) {
             return null;
@@ -66,7 +79,7 @@ public class MetricScope implements Scope {
     <T> T getScoped(final Key<T> key, final Provider<T> unscoped) {
         final TypeLiteral<T> literal = key.getTypeLiteral();
         final Class<? super T> type = literal.getRawType();
-        final Annotation annotation = key.getAnnotation();
+        final Annotation annotation = getAnnotation(key);
         final String mname = getName(annotation);
         final boolean unique = isUnique(annotation);
 

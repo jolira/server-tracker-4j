@@ -78,10 +78,12 @@ public interface ServerTracker {
      * @param content
      *            the content to forward
      * @return return the deserialized data structure
-     * @throws IllegalArgumentException thrown if the JSON is not in the proper format.
+     * @throws IllegalArgumentException
+     *             thrown if the JSON is not in the proper format.
      * 
      */
-    public Collection<Map<String, Object>> proxyEvent(Map<String, Object> serverInfo, InputStream content) throws IllegalArgumentException;
+    public Collection<Map<String, Object>> proxyEvent(Map<String, Object> serverInfo, InputStream content)
+            throws IllegalArgumentException;
 
     /**
      * Submits all metrics and logs collected for this thread to the remote server tracker.

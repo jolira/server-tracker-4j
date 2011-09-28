@@ -39,6 +39,13 @@ public class Timer {
     public String source;
 
     /**
+     * @return the duration
+     */
+    public long getDuration() {
+        return duration;
+    }
+
+    /**
      * Stop the timer.
      * 
      * @return the duration in ms
@@ -66,12 +73,5 @@ public class Timer {
         builder.append("]");
 
         return builder.toString();
-    }
-
-    /**
-     * @return the duration
-     */
-    public long getDuration() {
-        return duration;
     }
 }

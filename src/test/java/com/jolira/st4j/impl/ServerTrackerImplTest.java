@@ -82,7 +82,7 @@ public class ServerTrackerImplTest {
         assertSame(m3, r3);
     }
 
-    @Test(expected=IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testIllegalPayload() {
         final MetricStore store = new MetricStoreImpl();
         final ServerTrackerImpl tracker = new ServerTrackerImpl("localhost:3080", 2000, store, new Executor() {

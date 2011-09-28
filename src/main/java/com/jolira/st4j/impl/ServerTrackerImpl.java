@@ -92,7 +92,7 @@ public class ServerTrackerImpl implements ServerTracker {
     @Inject
     public ServerTrackerImpl(@Named("ServerTrackerServer") final String server,
             @Named("ServerTrackerTimeout") final int timeout, final MetricStore store, final Executor executor)
-                    throws IllegalArgumentException {
+            throws IllegalArgumentException {
         this.store = store;
         this.executor = executor;
         factory = new ClientFactory(server, timeout);
@@ -195,7 +195,7 @@ public class ServerTrackerImpl implements ServerTracker {
      *             no server was available to receive the content
      */
     protected void post(final Gson gson, final Map<String, Object> pending, final ClientFactory f) throws IOException,
-    JsonIOException, ServerUnavailableException {
+            JsonIOException, ServerUnavailableException {
         final Client client = f.makeClient();
         final OutputStream os = client.getOutputStream();
         final OutputStreamWriter wr = new OutputStreamWriter(os);
@@ -242,7 +242,8 @@ public class ServerTrackerImpl implements ServerTracker {
     }
 
     @Override
-    public Collection<Map<String, Object>> proxyEvent(final Map<String, Object> eventInfo, final InputStream content) throws IllegalArgumentException {
+    public Collection<Map<String, Object>> proxyEvent(final Map<String, Object> eventInfo, final InputStream content)
+            throws IllegalArgumentException {
         final GsonBuilder gsonBuilder = new GsonBuilder();
 
         gsonBuilder.registerTypeAdapter(Object.class, new NaturalDeserializer());
@@ -256,7 +257,6 @@ public class ServerTrackerImpl implements ServerTracker {
 
         @SuppressWarnings("unchecked")
         final Map<String, Object> payload = (Map<String, Object>) _payload;
-
 
         @SuppressWarnings("unchecked")
         final Collection<Map<String, Object>> _events = (Collection<Map<String, Object>>) payload.get("events");
