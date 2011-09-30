@@ -38,9 +38,9 @@ public class MetricStoreImplTest {
     public void testPostNotUnique() {
         final MetricStore store = new MetricStoreImpl();
 
-        store.postThreadLocalMetric("test", store, false);
-        store.postThreadLocalMetric("test", store, false);
-        store.postThreadLocalMetric("test", store, false);
+        store.postThreadLocalMeasurement("test", store, false);
+        store.postThreadLocalMeasurement("test", store, false);
+        store.postThreadLocalMeasurement("test", store, false);
 
         final Map<String, Object> metrics = store.getAndResetThreadLocalMetrics();
 
@@ -58,7 +58,7 @@ public class MetricStoreImplTest {
     public void testPostUnique() {
         final MetricStore store = new MetricStoreImpl();
 
-        store.postThreadLocalMetric("test", store, true);
+        store.postThreadLocalMeasurement("test", store, true);
 
         final Map<String, Object> metrics = store.getAndResetThreadLocalMetrics();
 

@@ -44,23 +44,23 @@ public interface MetricStore {
      * returned.
      * 
      * @param mname
-     *            the name of the metric (may be {@literal null}).
+     *            the name of the measurement (may be {@literal null}).
      * @param type
      *            the type of metric
      * @return the metric instance or {@literal null}
      */
-    public <T> T getThreadLocalMetric(@Nullable String mname, Class<T> type);
+    public <T> T getThreadLocalMeasurement(@Nullable String mname, Class<T> type);
 
     /**
-     * Post a metric instance to thread local storage.
+     * Post a measurement instance to thread local storage.
      * 
      * @param mname
      * 
-     *            the name of the metric (may be {@literal null}).
+     *            the name of the measurement (may be {@literal null}).
      * @param metric
      *            the metric instance to be posted
      * @param unique
      *            {@literal true} to indicate that the metric is unique
      */
-    public void postThreadLocalMetric(@Nullable String mname, Object metric, boolean unique);
+    public void postThreadLocalMeasurement(@Nullable String mname, Object metric, boolean unique);
 }

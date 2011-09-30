@@ -228,17 +228,17 @@ public class ServerTrackerImpl implements ServerTracker {
 
     @Override
     public void postMetric(final Object measurement) {
-        store.postThreadLocalMetric(null, measurement, true);
+        store.postThreadLocalMeasurement(null, measurement, true);
     }
 
     @Override
     public void postMetric(final String name, final Object measurement) {
-        store.postThreadLocalMetric(null, measurement, true);
+        store.postThreadLocalMeasurement(null, measurement, true);
     }
 
     @Override
     public void postMetric(final String name, final Object measurement, final boolean unique) {
-        store.postThreadLocalMetric(null, measurement, unique);
+        store.postThreadLocalMeasurement(null, measurement, unique);
     }
 
     @Override

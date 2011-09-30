@@ -65,7 +65,7 @@ public class MetricStoreImpl implements MetricStore {
     }
 
     @Override
-    public <T> T getThreadLocalMetric(final String mname, final Class<T> type) {
+    public <T> T getThreadLocalMeasurement(final String mname, final Class<T> type) {
         final String metricName = getMetricName(mname, type);
         final Map<String, Object> metricByName = localMetrics.get();
         final Object obj = metricByName.get(metricName);
@@ -74,7 +74,7 @@ public class MetricStoreImpl implements MetricStore {
     }
 
     @Override
-    public void postThreadLocalMetric(final String mname, final Object metric, final boolean unique) {
+    public void postThreadLocalMeasurement(final String mname, final Object metric, final boolean unique) {
         final Class<? extends Object> type = metric.getClass();
         final String metricName = getMetricName(mname, type);
         final Map<String, Object> metricByName = localMetrics.get();

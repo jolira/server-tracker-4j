@@ -85,7 +85,7 @@ public class MetricScope implements Scope {
 
         if (unique) {
             @SuppressWarnings("unchecked")
-            final T metric = (T) store.getThreadLocalMetric(mname, type);
+            final T metric = (T) store.getThreadLocalMeasurement(mname, type);
 
             if (metric != null) {
                 return metric;
@@ -94,7 +94,7 @@ public class MetricScope implements Scope {
 
         final T _metric = unscoped.get();
 
-        store.postThreadLocalMetric(mname, _metric, unique);
+        store.postThreadLocalMeasurement(mname, _metric, unique);
 
         return _metric;
     }

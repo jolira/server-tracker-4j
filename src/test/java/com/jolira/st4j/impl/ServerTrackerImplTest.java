@@ -72,10 +72,10 @@ public class ServerTrackerImplTest {
         tracker.postMetric(m2);
         tracker.postMetric(m3);
 
-        final MyMetric r1 = store.getThreadLocalMetric(null, MyMetric.class);
-        final MySecondMetric r2 = store.getThreadLocalMetric(
+        final MyMetric r1 = store.getThreadLocalMeasurement(null, MyMetric.class);
+        final MySecondMetric r2 = store.getThreadLocalMeasurement(
                 "com.jolira.st4j.impl.servertrackerimpltest$mysecondmetric", MySecondMetric.class);
-        final MyThirdMetric r3 = store.getThreadLocalMetric("third", MyThirdMetric.class);
+        final MyThirdMetric r3 = store.getThreadLocalMeasurement("third", MyThirdMetric.class);
 
         assertSame(m1, r1);
         assertSame(m2, r2);
