@@ -34,7 +34,7 @@ import com.jolira.st4j.ServerTracker;
 import com.jolira.st4j.ServerUnavailableException;
 
 /**
- * Creates metric and stores them in the thread-local field and send metric to the remote server.
+ * Creates measurement and stores them in the thread-local field and send measurement to the remote server.
  * 
  * @author jfk
  * @date Aug 12, 2011 9:09:31 PM
@@ -77,7 +77,7 @@ public class ServerTrackerImpl implements ServerTracker {
      * Create a new instance.
      * 
      * @param server
-     *            the name or names of the remote metrics servers. If there is more than one, the different names have
+     *            the name or names of the remote measurements servers. If there is more than one, the different names have
      *            to be comma delimited. Every name can include a port number (separated from the servername with a
      *            column, such as "localhost:3080").
      * @param timeout
@@ -85,7 +85,7 @@ public class ServerTrackerImpl implements ServerTracker {
      * @param store
      *            the store to be used
      * @param executor
-     *            the executor for uploading the metrics and logs in the background
+     *            the executor for uploading the measurements and logs in the background
      * @throws IllegalArgumentException
      *             thrown if the server cannot be used to form a valid URL
      */
@@ -227,18 +227,18 @@ public class ServerTrackerImpl implements ServerTracker {
     }
 
     @Override
-    public void postMetric(final Object metric) {
-        store.postThreadLocalMetric(null, metric, true);
+    public void postMetric(final Object measurement) {
+        store.postThreadLocalMetric(null, measurement, true);
     }
 
     @Override
-    public void postMetric(final String name, final Object metric) {
-        store.postThreadLocalMetric(null, metric, true);
+    public void postMetric(final String name, final Object measurement) {
+        store.postThreadLocalMetric(null, measurement, true);
     }
 
     @Override
-    public void postMetric(final String name, final Object metric, final boolean unique) {
-        store.postThreadLocalMetric(null, metric, unique);
+    public void postMetric(final String name, final Object measurement, final boolean unique) {
+        store.postThreadLocalMetric(null, measurement, unique);
     }
 
     @Override
@@ -254,7 +254,7 @@ public class ServerTrackerImpl implements ServerTracker {
         LOG.info("proxying {}", _payload);
 
         if (_payload == null || !(_payload instanceof Map)) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("not a map: " + _payload);
         }
 
         @SuppressWarnings("unchecked")
@@ -353,8 +353,8 @@ public class ServerTrackerImpl implements ServerTracker {
 
     @Override
     public void submit(final Map<String, Object> eventInfo) {
-        final Map<String, Object> metrics = store.getAndResetThreadLocalMetrics();
-        final int size = metrics.size();
+        final Map<String, Object> measurements = store.getAndResetThreadLocalMetrics();
+        final int size = measurements.size();
 
         if (size < 1) {
             return;
@@ -362,7 +362,7 @@ public class ServerTrackerImpl implements ServerTracker {
 
         final Map<String, Object> event = new HashMap<String, Object>();
 
-        event.put("metrics", metrics);
+        event.put("measurements", measurements);
         merge(eventInfo, event);
         addEvent(event);
     }
