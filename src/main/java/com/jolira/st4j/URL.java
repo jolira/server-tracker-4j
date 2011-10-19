@@ -7,8 +7,8 @@ package com.jolira.st4j;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.StringTokenizer;
 
 /**
@@ -33,6 +33,27 @@ public class URL {
         }
     }
 
+    private static class Param {
+        String key;
+        String value;
+
+        Param(final String key, final String value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        @Override
+        public String toString() {
+            final StringBuilder builder = new StringBuilder();
+            builder.append("Param [key=");
+            builder.append(key);
+            builder.append(", value=");
+            builder.append(value);
+            builder.append("]");
+            return builder.toString();
+        }
+    }
+
     private static class WellformedURL extends URL {
         private final String protocol;
         private final String username;
@@ -40,10 +61,10 @@ public class URL {
         private final String host;
         private final String port;
         private final String path;
-        private final Map<String, String> params;
+        private final Collection<Param> params;
 
         WellformedURL(final String protocol, final String username, final String password, final String host,
-                final String port, final String path, final Map<String, String> params) {
+                final String port, final String path, final Collection<Param> params) {
             this.protocol = protocol;
             this.username = username;
             this.password = password;
@@ -219,22 +240,25 @@ public class URL {
 
         final String path = urlPath.substring(0, questionMarkPos);
         final String query = urlPath.substring(questionMarkPos + 1);
-        final Map<String, String> params = parseParams(query);
+        final Collection<Param> params = parseParams(query);
 
         return new WellformedURL(protocol, username, password, host, port, path, params);
     }
 
-    private static Map<String, String> parseParams(final String query) {
+    private static Collection<Param> parseParams(final String query) {
         final StringTokenizer izer = new StringTokenizer(query, "&");
-        final Map<String, String> params = new HashMap<String, String>();
+        final Collection<Param> params = new ArrayList<Param>();
 
         while (izer.hasMoreTokens()) {
             final String token = izer.nextToken();
             final int equalsPos = token.indexOf('=');
             final String key = equalsPos == -1 ? token : token.substring(0, equalsPos);
             final String value = equalsPos == -1 ? null : token.substring(equalsPos + 1);
+            final String decodedKey = decode(key);
+            final String decodedValue = decode(value);
+            final Param param = new Param(decodedKey, decodedValue);
 
-            params.put(decode(key), decode(value));
+            params.add(param);
         }
 
         return params;
