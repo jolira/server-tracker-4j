@@ -36,7 +36,7 @@ public class Timer {
     /**
      * An additional source identifier, if available
      */
-    public String source;
+    public String originator;
 
     /**
      * @return the duration
@@ -66,8 +66,8 @@ public class Timer {
         builder.append(duration);
         builder.append(", category=");
         builder.append(category);
-        builder.append(", source=");
-        builder.append(source);
+        builder.append(", originator=");
+        builder.append(originator);
         builder.append(", url=");
         builder.append(url);
         builder.append("]");

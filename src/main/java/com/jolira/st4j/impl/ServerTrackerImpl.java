@@ -131,7 +131,7 @@ public class ServerTrackerImpl implements ServerTracker {
                 try {
                     post();
                 } catch (final Throwable e) {
-                    LOG.error("error while submitting data", e);
+                    LOG.warn("error while submitting data", e);
                 }
             }
         });
@@ -169,7 +169,7 @@ public class ServerTrackerImpl implements ServerTracker {
                 // nothing
             }
         } catch (final IOException e) {
-            LOG.error("exception while dispatching", e);
+            LOG.warn("exception while dispatching", e);
         } finally {
             synchronized (lock) {
                 dispatcherRunning = false;
