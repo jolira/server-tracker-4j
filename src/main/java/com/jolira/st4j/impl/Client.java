@@ -73,7 +73,7 @@ class Client {
 
                 LOG.warn("server returned {}", Integer.valueOf(code));
             } catch (final IOException e) {
-                LOG.warn("exception while transmitting", e);
+                LOG.warn("exception {} while sending to {}", e, url);
             }
         }
     }
