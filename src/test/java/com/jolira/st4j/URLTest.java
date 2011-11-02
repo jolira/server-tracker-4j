@@ -18,7 +18,7 @@ public class URLTest {
         final URL parsed = URL.parse("jolira://x/");
         final String value = parsed.toString();
 
-        assertEquals("{protocol=jolira, host=x, path=/}", value);
+        assertEquals("jolira://x/", value);
     }
 
     @Test
@@ -26,7 +26,7 @@ public class URLTest {
         final URL parsed = URL.parse("jolira://x:a");
         final String value = parsed.toString();
 
-        assertEquals("{protocol=jolira, host=x, port=a}", value);
+        assertEquals("jolira://x:a", value);
     }
 
     @Test
@@ -81,7 +81,7 @@ public class URLTest {
         final URL parsed = URL.parse("jolira://x?a=b");
         final String value = parsed.toString();
 
-        assertEquals("{protocol=jolira, host=x, path=, params=[Param [key=a, value=b]]}", value);
+        assertEquals("jolira://x?a=b", value);
     }
 
     @Test
@@ -89,7 +89,7 @@ public class URLTest {
         final URL parsed = URL.parse("jolira://x?a");
         final String value = parsed.toString();
 
-        assertEquals("{protocol=jolira, host=x, path=, params=[Param [key=a, value=null]]}", value);
+        assertEquals("jolira://x?a", value);
     }
 
     @Test
@@ -97,7 +97,7 @@ public class URLTest {
         final URL parsed = URL.parse("jolira://x?a=b");
         final String value = parsed.toString();
 
-        assertEquals("{protocol=jolira, host=x, path=, params=[Param [key=a, value=b]]}", value);
+        assertEquals("jolira://x?a=b", value);
     }
 
     @Test
@@ -105,7 +105,7 @@ public class URLTest {
         final URL parsed = URL.parse("jolira://x/y?a=b");
         final String value = parsed.toString();
 
-        assertEquals("{protocol=jolira, host=x, path=/y, params=[Param [key=a, value=b]]}", value);
+        assertEquals("jolira://x/y?a=b", value);
     }
 
     @Test
@@ -113,7 +113,7 @@ public class URLTest {
         final URL parsed = URL.parse("jolira://x");
         final String value = parsed.toString();
 
-        assertEquals("{protocol=jolira, host=x}", value);
+        assertEquals("jolira://x", value);
     }
 
     @Test
@@ -121,7 +121,7 @@ public class URLTest {
         final URL parsed = URL.parse("jolira://a@x");
         final String value = parsed.toString();
 
-        assertEquals("{protocol=jolira, username=a, host=x}", value);
+        assertEquals("jolira://x", value);
     }
 
     @Test
@@ -129,7 +129,7 @@ public class URLTest {
         final URL parsed = URL.parse("jolira://a:b@x");
         final String value = parsed.toString();
 
-        assertEquals("{protocol=jolira, username=a, password=b, host=x}", value);
+        assertEquals("jolira://x", value);
     }
 
     @Test
@@ -137,6 +137,6 @@ public class URLTest {
         final URL parsed = URL.parse("jolira://a:b@x:1");
         final String value = parsed.toString();
 
-        assertEquals("{protocol=jolira, username=a, password=b, host=x, port=1}", value);
+        assertEquals("jolira://x:1", value);
     }
 }

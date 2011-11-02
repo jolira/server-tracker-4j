@@ -46,8 +46,12 @@ public class URL {
         public String toString() {
             final StringBuilder builder = new StringBuilder();
             builder.append(key);
-            builder.append("=");
-            builder.append(value);
+
+            if (value != null) {
+                builder.append("=");
+                builder.append(value);
+            }
+
             return builder.toString();
         }
     }
