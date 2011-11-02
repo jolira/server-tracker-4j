@@ -77,8 +77,8 @@ public class ServerTrackerImpl implements ServerTracker {
      * Create a new instance.
      * 
      * @param server
-     *            the name or names of the remote measurements servers. If there is more than one, the different names have
-     *            to be comma delimited. Every name can include a port number (separated from the servername with a
+     *            the name or names of the remote measurements servers. If there is more than one, the different names
+     *            have to be comma delimited. Every name can include a port number (separated from the servername with a
      *            column, such as "localhost:3080").
      * @param timeout
      *            used as the connect timeout
@@ -210,7 +210,11 @@ public class ServerTrackerImpl implements ServerTracker {
             LOG.debug("sending {}", gson.toJson(pending));
         }
 
-        client.transmit();
+        try {
+            client.transmit();
+        } catch (final ServerUnavailableException e) {
+            LOG.error("no server for {}", gson.toJson(pending));
+        }
     }
 
     @Override
