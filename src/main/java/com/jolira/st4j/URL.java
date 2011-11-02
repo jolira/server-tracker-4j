@@ -45,19 +45,15 @@ public class URL {
         @Override
         public String toString() {
             final StringBuilder builder = new StringBuilder();
-            builder.append("Param [key=");
             builder.append(key);
-            builder.append(", value=");
+            builder.append("=");
             builder.append(value);
-            builder.append("]");
             return builder.toString();
         }
     }
 
     private static class WellformedURL extends URL {
         private final String protocol;
-        private final String username;
-        private final String password;
         private final String host;
         private final String port;
         private final String path;
@@ -66,8 +62,6 @@ public class URL {
         WellformedURL(final String protocol, final String username, final String password, final String host,
                 final String port, final String path, final Collection<Param> params) {
             this.protocol = protocol;
-            this.username = username;
-            this.password = password;
             this.host = host;
             this.port = port;
             this.path = path;
@@ -77,38 +71,35 @@ public class URL {
         @Override
         public String toString() {
             final StringBuilder builder = new StringBuilder();
-            builder.append("{protocol=");
             builder.append(protocol);
-
-            if (username != null) {
-                builder.append(", username=");
-                builder.append(username);
-            }
-
-            if (password != null) {
-                builder.append(", password=");
-                builder.append(password);
-            }
-
-            builder.append(", host=");
+            builder.append("://");
             builder.append(host);
 
             if (port != null) {
-                builder.append(", port=");
+                builder.append(':');
                 builder.append(port);
             }
 
             if (path != null) {
-                builder.append(", path=");
                 builder.append(path);
             }
 
             if (params != null) {
-                builder.append(", params=");
-                builder.append(params);
-            }
+                builder.append('?');
 
-            builder.append("}");
+                boolean first = true;
+
+                for(final Param param : params) {
+                    if (first) {
+                        first = false;
+                    }
+                    else {
+                        builder.append('&');
+                    }
+
+                    builder.append(param);
+                }
+            }
 
             return builder.toString();
         }
