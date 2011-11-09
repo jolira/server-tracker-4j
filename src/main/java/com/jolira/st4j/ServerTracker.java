@@ -10,7 +10,7 @@ import java.util.Collection;
 import java.util.Map;
 
 /**
- * A interface for submitting metrics to the server.
+ * A interface for submitting measurements to the server.
  * 
  * @author jfk
  * @date Aug 12, 2011 8:47:45 PM
@@ -27,37 +27,37 @@ public interface ServerTracker {
     public void post(LogRecord record);
 
     /**
-     * Adds a metric object to thread-local storage to it can be dispatch to the server in a subsequent
-     * {@link #submit(Map)} call. The name of the metric will be derived from the name of the class or a {@link Metric}
+     * Adds a measurement object to thread-local storage to it can be dispatch to the server in a subsequent
+     * {@link #submit(Map)} call. The name of the measurement will be derived from the name of the class or a {@link Metric}
      * annotation if one if present on the type.
      * 
-     * @param metric
-     *            the type of metric to be returned
+     * @param measurement
+     *            the type of measurement to be returned
      */
-    public void postMetric(final Object metric);
+    public void postMeasurment(final Object measurement);
 
     /**
-     * Adds a metric object to thread-local storage to it can be dispatch to the server in a subsequent
+     * Adds a measurement object to thread-local storage to it can be dispatch to the server in a subsequent
      * {@link #submit(Map)} call.
      * 
      * @param name
-     *            the name to be used to store the metric
-     * @param metric
-     *            the type of metric to be returned
+     *            the name to be used to store the measurement
+     * @param measurement
+     *            the type of measurement to be returned
      */
-    public void postMetric(String name, final Object metric);
+    public void postMeasurment(String name, final Object measurement);
 
     /**
-     * Post a metric object.
+     * Post a measurement object.
      * 
      * @param name
-     *            the name of the metric
-     * @param metric
-     *            the metric object
+     *            the name of the measurement
+     * @param measurement
+     *            the measurement object
      * @param unique
-     *            indicates if the metric should be unique or not
+     *            indicates if the measurement should be unique or not
      */
-    public void postMetric(String name, Object metric, boolean unique);
+    public void postMeasurment(String name, Object measurement, boolean unique);
 
     /**
      * Forward events and logs received from devices. The content has to be valid JSON in the following format:
@@ -86,7 +86,7 @@ public interface ServerTracker {
             throws IllegalArgumentException;
 
     /**
-     * Submits all metrics and logs collected for this thread to the remote server tracker.
+     * Submits all measurements and logs collected for this thread to the remote server tracker.
      * 
      * @param eventInfo
      *            the event properties

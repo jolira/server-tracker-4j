@@ -28,7 +28,7 @@ import com.jolira.st4j.ServerUnavailableException;
  * @since 1.0
  * 
  */
-class Client {
+abstract class Client {
     private final static Logger LOG = LoggerFactory.getLogger(Client.class);
     private final int timeout;
     private final List<URL> urls;
@@ -55,6 +55,8 @@ class Client {
 
         return urls.remove(pos);
     }
+
+    protected abstract void postMeasurment(Object measurement);
 
     void transmit() throws ServerUnavailableException {
         final Random random = new Random();

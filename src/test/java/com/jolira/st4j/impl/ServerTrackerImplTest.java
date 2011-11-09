@@ -2,7 +2,6 @@ package com.jolira.st4j.impl;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
@@ -18,6 +17,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 
@@ -68,9 +68,9 @@ public class ServerTrackerImplTest {
         m2.valueC = 0;
         m3.valueD = "jolira";
 
-        tracker.postMetric(m1);
-        tracker.postMetric(m2);
-        tracker.postMetric(m3);
+        tracker.postMeasurment(m1);
+        tracker.postMeasurment(m2);
+        tracker.postMeasurment(m3);
 
         final MyMetric r1 = store.getThreadLocalMeasurement(null, MyMetric.class);
         final MySecondMetric r2 = store.getThreadLocalMeasurement(
@@ -183,7 +183,7 @@ public class ServerTrackerImplTest {
 
     @Test
     public void testSubmit() throws Exception {
-        final boolean processed[] = { false };
+        final Semaphore semaphore = new Semaphore(0);
         final WebServerEmulator server = new WebServerEmulator() {
             @Override
             public void handle(final String target, final HttpServletRequest request, final HttpServletResponse response)
@@ -220,8 +220,7 @@ public class ServerTrackerImplTest {
 
                 writer.append("true");
                 writer.close();
-
-                processed[0] = true;
+                semaphore.release();
             }
         };
 
@@ -234,34 +233,44 @@ public class ServerTrackerImplTest {
             final ServerTrackerImpl tracker = new ServerTrackerImpl(name, 2000, store, new Executor() {
                 @Override
                 public void execute(final Runnable command) {
+                    LOG.info("transmitting");
                     command.run();
                 }
             });
-            final MyMetric m1 = new MyMetric();
-            final MySecondMetric m2 = new MySecondMetric();
-            final MyThirdMetric m3 = new MyThirdMetric();
 
-            m1.valueA = 1234567890l;
-            m1.valueB = "test";
-            m2.valueC = 0;
-            m3.valueD = "jolira";
+            for(int idx=0; idx<50; idx++) {
+                final Thread thread = new Thread(new Runnable(){
+                    @Override
+                    public void run() {
+                        final MyMetric m1 = new MyMetric();
+                        final MySecondMetric m2 = new MySecondMetric();
+                        final MyThirdMetric m3 = new MyThirdMetric();
 
-            tracker.postMetric(m1);
-            tracker.postMetric(m2);
-            tracker.postMetric(m3);
-            tracker.post(new JDK14LogRecordAdapter(new LogRecord(Level.SEVERE, "")));
+                        m1.valueA = 1234567890l;
+                        m1.valueB = "test";
+                        m2.valueC = 0;
+                        m3.valueD = "jolira";
 
-            final Map<String, Object> eventInfo = new HashMap<String, Object>();
+                        tracker.postMeasurment(m1);
+                        tracker.postMeasurment(m2);
+                        tracker.postMeasurment(m3);
+                        tracker.post(new JDK14LogRecordAdapter(new LogRecord(Level.SEVERE, "")));
 
-            eventInfo.put("source", "source");
-            eventInfo.put("user", "007");
+                        final Map<String, Object> eventInfo = new HashMap<String, Object>();
 
-            tracker.submit(eventInfo);
-            tracker.submit(eventInfo);
+                        eventInfo.put("source", "source");
+                        eventInfo.put("user", "007");
+
+                        tracker.submit(eventInfo);
+                        tracker.submit(eventInfo);
+                    }
+                });
+
+                thread.start();
+            }
+            semaphore.acquire();
         } finally {
             server.stop();
         }
-
-        assertTrue(processed[0]);
     }
 }

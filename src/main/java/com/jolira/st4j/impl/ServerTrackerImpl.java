@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonIOException;
 import com.jolira.st4j.LogRecord;
 import com.jolira.st4j.MetricStore;
 import com.jolira.st4j.ServerTracker;
@@ -67,11 +66,11 @@ public class ServerTrackerImpl implements ServerTracker {
 
     private final ClientFactory factory;
 
-    private boolean dispatcherRunning = false;
-
-    private final Object lock = new Object();
-
     private final MetricStore store;
+
+    private long lastSubmit = 0;
+
+    private final int SUMBIT_INTERVAL = 1000;
 
     /**
      * Create a new instance.
@@ -95,7 +94,12 @@ public class ServerTrackerImpl implements ServerTracker {
                     throws IllegalArgumentException {
         this.store = store;
         this.executor = executor;
-        factory = new ClientFactory(server, timeout);
+        factory = new ClientFactory(server, timeout){
+            @Override
+            protected void postMeasurment(final Object measurement) {
+                ServerTrackerImpl.this.postMeasurment(measurement);
+            }
+        };
     }
 
     private void addEvent(final Map<String, Object> event) {
@@ -103,38 +107,13 @@ public class ServerTrackerImpl implements ServerTracker {
             events.add(event);
         }
 
-        execute();
+        transmit();
     }
 
     private void addLog(final Map<String, Object> log) {
         synchronized (logs) {
             logs.add(log);
         }
-    }
-
-    private boolean dispatch(final Gson gson) throws IOException {
-        final Map<String, Object> _pending = retrievePending();
-
-        if (_pending == null) {
-            return false;
-        }
-
-        post(gson, _pending, factory);
-
-        return true;
-    }
-
-    private void execute() {
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    post();
-                } catch (final Throwable e) {
-                    LOG.warn("error while submitting data", e);
-                }
-            }
-        });
     }
 
     private void merge(final Map<String, Object> source, final Map<String, Object> target) {
@@ -150,70 +129,7 @@ public class ServerTrackerImpl implements ServerTracker {
             final Object value = entry.getValue();
 
             target.put(key, value);
-        }
-    }
 
-    void post() {
-        synchronized (lock) {
-            if (dispatcherRunning) {
-                return;
-            }
-
-            dispatcherRunning = true;
-        }
-
-        try {
-            final Gson gson = new Gson();
-
-            while (dispatch(gson)) {
-                // nothing
-            }
-        } catch (final IOException e) {
-            LOG.warn("exception while dispatching", e);
-        } finally {
-            synchronized (lock) {
-                dispatcherRunning = false;
-            }
-        }
-    }
-
-    /**
-     * Post to the remote server.
-     * 
-     * @param gson
-     *            the GSON object to be used to encode the contents
-     * @param pending
-     *            the events to be encoded
-     * @param f
-     *            the factory to be used to create the client
-     * 
-     * @throws IOException
-     *             could not transmit
-     * @throws JsonIOException
-     *             could not encode
-     * @throws ServerUnavailableException
-     *             no server was available to receive the content
-     */
-    protected void post(final Gson gson, final Map<String, Object> pending, final ClientFactory f) throws IOException,
-    JsonIOException, ServerUnavailableException {
-        final Client client = f.makeClient();
-        final OutputStream os = client.getOutputStream();
-        final OutputStreamWriter wr = new OutputStreamWriter(os);
-
-        try {
-            gson.toJson(pending, wr);
-        } finally {
-            wr.close();
-        }
-
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("sending {}", gson.toJson(pending));
-        }
-
-        try {
-            client.transmit();
-        } catch (final ServerUnavailableException e) {
-            LOG.error("no server for {}", gson.toJson(pending));
         }
     }
 
@@ -227,21 +143,21 @@ public class ServerTrackerImpl implements ServerTracker {
             logs.add(record);
         }
 
-        execute();
+        transmit();
     }
 
     @Override
-    public void postMetric(final Object measurement) {
+    public void postMeasurment(final Object measurement) {
         store.postThreadLocalMeasurement(null, measurement, true);
     }
 
     @Override
-    public void postMetric(final String name, final Object measurement) {
+    public void postMeasurment(final String name, final Object measurement) {
         store.postThreadLocalMeasurement(null, measurement, true);
     }
 
     @Override
-    public void postMetric(final String name, final Object measurement, final boolean unique) {
+    public void postMeasurment(final String name, final Object measurement, final boolean unique) {
         store.postThreadLocalMeasurement(null, measurement, unique);
     }
 
@@ -369,5 +285,72 @@ public class ServerTrackerImpl implements ServerTracker {
         event.put("measurements", measurements);
         merge(eventInfo, event);
         addEvent(event);
+    }
+
+    private synchronized void transmit() {
+        final long time = System.currentTimeMillis();
+
+        if (time - lastSubmit < SUMBIT_INTERVAL) {
+            return;
+        }
+
+        final Map<String, Object> _pending = retrievePending();
+
+        if (_pending == null) {
+            return;
+        }
+
+        final ClientFactory f = factory;
+        final Gson gson = new Gson();
+
+        lastSubmit = time;
+
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    transmit(gson, _pending, f);
+                } catch (final Throwable e) {
+                    LOG.warn("error while submitting data", e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Post to the remote server. A template method that allows subclasses to pre-process JSON before submitting it to
+     * the server.
+     * 
+     * @param gson
+     *            the GSON object to be used to encode the contents
+     * @param pending
+     *            the events to be encoded
+     * @param f
+     *            the factory to be used to create the client
+     * 
+     * @throws IOException
+     *             could not transmit
+     */
+    protected void transmit(final Gson gson, final Map<String, Object> pending, final ClientFactory f)
+            throws IOException {
+        final Client client = f.makeClient();
+        final OutputStream os = client.getOutputStream();
+        final OutputStreamWriter wr = new OutputStreamWriter(os);
+
+        try {
+            gson.toJson(pending, wr);
+        } finally {
+            wr.close();
+        }
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("sending {}", gson.toJson(pending));
+        }
+
+        try {
+            client.transmit();
+        } catch (final ServerUnavailableException e) {
+            LOG.error("no server for {}", gson.toJson(pending));
+        }
     }
 }

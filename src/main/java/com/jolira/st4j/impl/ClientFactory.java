@@ -19,7 +19,7 @@ import java.util.StringTokenizer;
  * @since 1.0
  * 
  */
-public class ClientFactory {
+abstract class ClientFactory {
     private static URL makeURL(final String server) throws IllegalArgumentException {
         try {
             return new URL("http://" + server + "/submit/events");
@@ -48,7 +48,15 @@ public class ClientFactory {
         this.timeout = timeout;
     }
 
+    protected abstract void postMeasurment(Object measurement);
+
     Client makeClient() {
-        return new Client(urls, timeout);
+        return new Client(urls, timeout){
+            @Override
+            protected void postMeasurment(final Object measurement) {
+                ClientFactory.this.postMeasurment(measurement);
+            }
+
+        };
     }
 }

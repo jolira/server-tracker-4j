@@ -27,7 +27,7 @@ import com.jolira.st4j.MetricStore;
 @Singleton
 public class MetricStoreImpl implements MetricStore {
     private static final String DEFAULT = "##default";
-    private final static ThreadLocal<Map<String, Object>> localMetrics = new ThreadLocal<Map<String, Object>>() {
+    private final ThreadLocal<Map<String, Object>> localMetrics = new ThreadLocal<Map<String, Object>>() {
         @Override
         protected Map<String, Object> initialValue() {
             return new HashMap<String, Object>();

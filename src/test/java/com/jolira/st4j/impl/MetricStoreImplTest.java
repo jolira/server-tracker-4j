@@ -6,6 +6,7 @@ import static org.junit.Assert.assertSame;
 import java.util.Collection;
 import java.util.Map;
 
+import org.eclipse.jetty.util.log.Log;
 import org.junit.Test;
 
 import com.jolira.st4j.Metric;
@@ -44,6 +45,7 @@ public class MetricStoreImplTest {
 
         final Map<String, Object> metrics = store.getAndResetThreadLocalMetrics();
 
+        Log.info("metrics={}", metrics);
         assertEquals(1, metrics.size());
         @SuppressWarnings("unchecked")
         final Collection<Object> object = (Collection<Object>) metrics.get("test");

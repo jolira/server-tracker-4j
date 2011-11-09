@@ -24,7 +24,7 @@ public class Demo {
         final MetricStore store = new MetricStoreImpl();
         final ServerTracker tracker = new ServerTrackerImpl(
                 "tracker1.jolira.com:3080,tracker2.jolira.com:3080,tracker3.jolira.com", 2000, store, executor);
-        final DemoMetric metric = new DemoMetric();
+        final DemoMetric measurement = new DemoMetric();
         final long startTime = System.currentTimeMillis();
 
         try {
@@ -32,18 +32,18 @@ public class Demo {
         } finally {
             final long duration = System.currentTimeMillis() - startTime;
 
-            metric.startTime = startTime;
-            metric.duration = duration;
+            measurement.startTime = startTime;
+            measurement.duration = duration;
         }
 
-        tracker.postMetric(metric);
+        tracker.postMeasurment(measurement);
 
         final Map<String, Object> eventInfo = new HashMap<String, Object>();
 
         eventInfo.put("session", sessionID);
         eventInfo.put("visitor", visitorID);
 
-        // send the metric (and any other that may have been created for this thread
+        // send the measurement (and any other that may have been created for this thread
         // to the remote server.
         tracker.submit(eventInfo);
     }
