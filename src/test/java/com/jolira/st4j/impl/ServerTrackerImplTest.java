@@ -120,7 +120,7 @@ public class ServerTrackerImplTest {
         final Writer writer = new OutputStreamWriter(out);
         final PrintWriter pw = new PrintWriter(writer);
 
-        pw.print("{\"events\":[{\"session\" : \"1\"}], \"logs\":[{\"source:\":1}]}");
+        pw.print("{\"events\":[{\"type\":\"bird\",\"measurements\":{\"xxx-url\":[{\"name\":\"backbags\",\"duration\":103}]},\"timestamp\":1320901196231}]}");
         pw.close();
 
         final byte[] array = out.toByteArray();
@@ -136,9 +136,8 @@ public class ServerTrackerImplTest {
         final Iterator<Map<String, Object>> it = events.iterator();
         final Map<String, Object> event = it.next();
 
-        assertEquals(2, event.size());
-        assertEquals("1", event.get("session"));
-        assertEquals("007", event.get("visitor"));
+        assertEquals(4, event.size());
+        assertEquals("bird", event.get("type"));
     }
 
     @Test
