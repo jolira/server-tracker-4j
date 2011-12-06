@@ -8,7 +8,7 @@
   <artifactId>server-tracker-4j</artifactId>
   <packaging>jar</packaging>
   <name>Server Tracker for Java</name>
-  <version>1.1.1-SNAPSHOT</version>
+  <version>1.1.1</version>
   <description>A client library for the Server Tracker. (http://github.com/jolira/server-tracker)</description>
   <dependencies>
     <dependency>
