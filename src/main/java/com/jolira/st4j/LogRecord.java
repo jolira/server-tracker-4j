@@ -8,6 +8,9 @@ package com.jolira.st4j;
 import java.util.Arrays;
 
 /**
+ * A simple abstraction for a log record as seen by this library. In order to
+ * add fields, please just subclass this record.
+ * 
  * @author jfk
  * @date Aug 14, 2011 8:35:01 PM
  * @since 1.0
