@@ -1,10 +1,10 @@
-A Server Tracker Client Library 4 Java
+A Server Tracker Client Library 4 Java [<img src="https://secure.travis-ci.org/jolira/server-tracker-4j.png" />](http://travis-ci.org/#!/jolira/server-tracker-4j)
 ======================================
 
 A java client library for the [Server Tracker](http://github.com/jolira/server-tracker).
 
 The basic function of this library is to collect arbitrary metrics and logs inside a
-Java application or an application server and submit these metrics to remote  Server 
+Java application or an application server and submit these metrics to remote  Server
 Tracker with low-overhead so the data is available for display.
 
 This library has been build to be used with Google's Guice, but can also be run
@@ -57,7 +57,7 @@ This example creates one metric that captures start time and performance of
 some piece of code and sends the results to the server using a background
 thread.
 
-The full source code of this example can be found at 
+The full source code of this example can be found at
 [Demo.java](http://raw.github.com/jolira/server-tracker-4j/master/src/test/java/com/jolira/st4j/impl/Demo.java).
 
 Metrics
